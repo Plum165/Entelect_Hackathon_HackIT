@@ -21,8 +21,10 @@ INPUT_FILE = "4.json"
 OUTPUT_FILE = "submission.json"
 MAX_PLANTS_PER_TICK = 20
 
-# 100% Guaranteed Count-Unlocked 7 Species
-ACTIVE_7 = [1, 2, 4, 5, 6, 11, 12]
+# Low-spread harvest pool. Oak and Sunflower are used neither as harvest
+# seeds nor as late-game spread sources because the evaluator showed that
+# they overwhelm the final species distribution.
+HARVEST_POOL = [1, 2, 4, 6, 11]
 
 def solve():
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -41,31 +43,52 @@ def solve():
     plantable = [(int(c["row"]), int(c["col"])) for c in data.get("cells", []) if int(c.get("terrain", 0)) == 0]
     grouped = defaultdict(list)
 
-    # 1. Early Count-Based Unlock Injection (Ticks 0..2)
+    # 1. Trigger the count-based ecosystem unlocks shortly before harvest.
+    # This keeps Oak Tree from spreading for hundreds of ticks while still
+    # allowing Canorals and Virexids to unlock the intended species.
     early_batches = [
-        [1] * 15 + [6] * 5,
-        [6] * 10 + [12] * 10,
-        [12] * 5 + [2] * 15,
+        [1] * 10 + [6] * 10,
+        [12] * 10,
+        [2] * 10,
     ]
     early_offset = 0
     for tick, batch in enumerate(early_batches):
         trigger_cells = plantable[early_offset:early_offset + len(batch)]
         for position, plant_index in zip(trigger_cells, batch):
-            grouped[tick].append({"plant_index": plant_index, "row": position[0], "col": position[1]})
+            grouped[680 + tick].append({"plant_index": plant_index, "row": position[0], "col": position[1]})
         early_offset += len(batch)
 
-    # 2. Packed Harvest at 98-Tick Lifespan Horizon (Ticks 702 to 762)
-    # 1,191 cells / 20 = ~60 ticks
-    total_to_plant = len(plantable)
-    species_queue = [ACTIVE_7[i % len(ACTIVE_7)] for i in range(total_to_plant)]
-    
-    harvest_plantable = list(plantable)
+    # 2. Harvest only unused coordinates. Stone Reed is assigned exclusively
+    # to cells adjacent to a non-soil terrain cell, matching its dataset rule.
+    harvest_plantable = plantable[early_offset:]
     harvest_plantable.sort()
+    terrain_by_position = {
+        (int(cell["row"]), int(cell["col"])): int(cell["terrain"])
+        for cell in data.get("cells", [])
+    }
+
+    def is_terrain_adjacent(position):
+        row, col = position
+        return any(
+            terrain_by_position.get((row + row_delta, col + col_delta), 0) != 0
+            for row_delta in (-1, 0, 1)
+            for col_delta in (-1, 0, 1)
+            if row_delta or col_delta
+        )
+
+    stone_cells = [position for position in harvest_plantable if is_terrain_adjacent(position)]
+    stone_positions = set(stone_cells[::max(1, len(stone_cells) // 240)])
+    species_queue = []
+    for position in harvest_plantable:
+        if position in stone_positions:
+            species_queue.append(11)
+        else:
+            species_queue.append(HARVEST_POOL[len(species_queue) % 4])
 
     cur_tick = 702
     harvest_actions = []
 
-    while species_queue and harvest_plantable and cur_tick < T - 2:
+    while species_queue and harvest_plantable and cur_tick < T:
         batch_size = min(MAX_PLANTS_PER_TICK, len(species_queue), len(harvest_plantable))
         for _ in range(batch_size):
             p_idx = species_queue.pop(0)
@@ -88,6 +111,7 @@ def solve():
         json.dump(submission, f, indent=2)
 
     C = len(harvest_actions)
+    total_to_plant = len(harvest_plantable) + C
     K = len(counts)
     H = -sum((cnt / C) * (math.log(cnt / C) / math.log(31)) for cnt in counts.values())
     mean_lifespan = sum(lifespans) / len(lifespans)
