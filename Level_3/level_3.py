@@ -1,20 +1,9 @@
 #!/usr/bin/env python3
 """
-Entelect University Cup 2 / HackIT - Level 3 Solver: Park Potential
-===================================================================
-World Size: 150 x 150 (22,500 cells) | Ticks: 800
-Max Actions: 20 plants/tick (Up to 16,000 total action capacity)
-
-Strategy:
-- Strict terrain filtering (only places on plantable soil terrain == 0).
-- Multi-wave lifecycle scheduling across the 800-tick timeline:
-  * Phase 1 (Ticks 0-45): Bootstraps large-scale animal coverage thresholds.
-  * Phase 2 (Ticks 150-180): Propagates Tier-2 unlocked species (Summer Wave 1).
-  * Phase 3 (Ticks 300-330): Propagates Tier-3 canopy & hardy species (Autumn Wave 1).
-  * Phase 4 (Ticks 450-480): Mid-game biodiversity reinforcement (Spring Wave 2).
-  * Phase 5 (Ticks 600-630): Late-game ecosystem stabilization (Autumn Wave 2).
-  * Phase 6 (Ticks 715-790): The Grand Harvest (1,500+ seeds across 15+ species)
-    ensuring 100% live biomass, peak Shannon Entropy, and zero nutrient starvation at Tick 800.
+Entelect University Cup 2 / HackIT - Level 3 Grand Master Solver
+================================================================
+World Size: 150 x 150 (22,500 cells, 1253 plantable) | Ticks: 800
+Max Actions: 20 plants/tick
 """
 
 import json
@@ -39,7 +28,7 @@ MAX_PLANTS_PER_TICK = 20
 
 
 # ============================================================
-# DATA CLASSES
+# DATA STRUCTURES
 # ============================================================
 
 @dataclass
@@ -108,7 +97,7 @@ def get_plant_catalogue() -> Dict[str, PlantInfo]:
 
 
 # ============================================================
-# SMART SOIL & TERRAIN PLACEMENT ALLOCATOR
+# SMART SOIL & TERRAIN ALLOCATOR
 # ============================================================
 
 def allocate_wave(
@@ -120,7 +109,7 @@ def allocate_wave(
 ) -> List[Dict[str, Any]]:
     actions = []
     
-    # Bucket available coordinates by soil type
+    # Bucket open plantable cells by soil type
     soil_buckets = defaultdict(list)
     for pos in plantable_coords:
         if pos not in occupied_positions:
@@ -197,7 +186,7 @@ def solve():
             soil=int(raw.get("soil", 0)),
         )
 
-    # Strictly filter plantable soil (terrain == 0, excluding stone/paths/water)
+    # Strictly filter plantable soil (terrain == 0)
     plantable = [pos for pos, cell in cells.items() if cell.terrain == 0]
     if not plantable:
         plantable = list(cells.keys())
@@ -207,14 +196,14 @@ def solve():
     # 2. Load Plant Dataset
     plants = get_plant_catalogue()
 
-    # Species lookups
+    # Base Species
     grass = plants.get("Grass", PlantInfo(1, "Grass", preferred_soil=[0, 1]))
     rose = plants.get("Rose Bush", PlantInfo(2, "Rose Bush", preferred_soil=[0, 2]))
     sunflower = plants.get("Dwarf Sunflower", PlantInfo(3, "Dwarf Sunflower", preferred_soil=[2]))
     lavender = plants.get("Lavender", PlantInfo(4, "Lavender", preferred_soil=[0, 1]))
     oak = plants.get("Oak Tree", PlantInfo(5, "Oak Tree", preferred_soil=[0, 2]))
 
-    # Unlocks
+    # Unlocked Species Pool
     blue_moss = plants.get("Blue Moss", PlantInfo(6, "Blue Moss", preferred_soil=[1, 2]))
     orange_blossom = plants.get("Orange Blossom", PlantInfo(7, "Orange Blossom", preferred_soil=[0]))
     golden_fern = plants.get("Golden Fern", PlantInfo(9, "Golden Fern", preferred_soil=[2]))
@@ -222,24 +211,18 @@ def solve():
     thornberry = plants.get("Thornberry Bush", PlantInfo(11, "Thornberry Bush", preferred_soil=[0, 2]))
     twilight = plants.get("Twilight Bloom", PlantInfo(12, "Twilight Bloom", preferred_soil=[2]))
     stonepine = plants.get("Stonepine", PlantInfo(13, "Stonepine", preferred_soil=[2]))
+    luminescent_fungi = plants.get("Luminescent Fungi", PlantInfo(14, "Luminescent Fungi", preferred_soil=[1, 3]))
     emberleaf = plants.get("Emberleaf", PlantInfo(15, "Emberleaf", preferred_soil=[0, 3]))
     deeproot_fern = plants.get("Deeproot Fern", PlantInfo(17, "Deeproot Fern", preferred_soil=[2]))
     purple_canopy = plants.get("Purple Canopy Tree", PlantInfo(24, "Purple Canopy Tree", preferred_soil=[0]))
-    radiant_sunflower = plants.get("Radiant Sunflower", PlantInfo(28, "Radiant Sunflower", preferred_soil=[2]))
 
     all_actions = []
     occupied_positions: Set[Tuple[int, int]] = set()
 
     # -------------------------------------------------------------------------
-    # PHASE 1: MASSIVE ECOSYSTEM BOOTSTRAP (Ticks 0 .. 45)
-    # Seeds 900 plants across the 150x150 map to trigger all animals early:
-    # - Grass: ~400 nodes (Boosts coverage to >= 4% = 900 cells with spread)
-    # - Lavender: ~180 nodes (Boosts coverage to >= 2% = 450 cells for Nectaris)
-    # - Sunflower: ~200 nodes (Boosts coverage to >= 3% = 675 cells for Solwings)
-    # - Rose Bush: ~100 nodes (Boosts coverage to >= 2% = 450 cells)
-    # - Oak Tree: ~30 nodes (Triggers Barkskips >= 8 count)
+    # PHASE 1: MASSIVE ECOSYSTEM BOOTSTRAP (Ticks 0 .. 30)
     # -------------------------------------------------------------------------
-    for tick in range(0, 45):
+    for tick in range(0, 31):
         if tick % 4 == 0:
             quota = [(grass, 12), (lavender, 8)]
         elif tick % 4 == 1:
@@ -253,51 +236,36 @@ def solve():
         all_actions.extend(acts)
 
     # -------------------------------------------------------------------------
-    # PHASE 2: SUMMER REINFORCEMENTS & TIER 2 SOWING (Ticks 150 .. 175)
-    # Seeds Blue Moss, Orange Blossom, Golden Fern, Dahlia, Thornberry, Stonepine
+    # PHASE 2: SUMMER REINFORCEMENTS & TIER 2 SOWING (Ticks 150 .. 170)
     # -------------------------------------------------------------------------
-    tier2_species = [blue_moss, orange_blossom, golden_fern, dahlia, thornberry, stonepine]
-    for tick in range(150, 175):
-        quota = [(p, 4) for p in tier2_species]
+    tier2_species = [blue_moss, orange_blossom, golden_fern, dahlia, thornberry, stonepine, luminescent_fungi]
+    for tick in range(150, 171):
+        quota = [(p, 3) for p in tier2_species]
         acts = allocate_wave(tick, quota, cells, plantable, occupied_positions)
         all_actions.extend(acts)
 
     # -------------------------------------------------------------------------
-    # PHASE 3: AUTUMN CANOPY & HARDY ADVANCEMENT (Ticks 300 .. 325)
-    # Seeds Purple Canopy Tree, Twilight Bloom, Deeproot Fern, Emberleaf
+    # PHASE 3: AUTUMN CANOPY & HARDY ADVANCEMENT (Ticks 300 .. 320)
     # -------------------------------------------------------------------------
     tier3_species = [purple_canopy, twilight, deeproot_fern, emberleaf, stonepine, oak]
-    for tick in range(300, 325):
+    for tick in range(300, 321):
         quota = [(p, 4) for p in tier3_species]
         acts = allocate_wave(tick, quota, cells, plantable, occupied_positions)
         all_actions.extend(acts)
 
     # -------------------------------------------------------------------------
-    # PHASE 4: YEAR 2 SPRING BIODIVERSITY (Ticks 450 .. 475)
+    # PHASE 4: YEAR 2 SPRING BIODIVERSITY (Ticks 450 .. 470)
     # -------------------------------------------------------------------------
-    mid_species = [blue_moss, orange_blossom, golden_fern, dahlia, radiant_sunflower, purple_canopy]
-    for tick in range(450, 475):
+    mid_species = [blue_moss, orange_blossom, golden_fern, dahlia, purple_canopy]
+    for tick in range(450, 471):
         quota = [(p, 4) for p in mid_species]
         acts = allocate_wave(tick, quota, cells, plantable, occupied_positions)
         all_actions.extend(acts)
 
     # -------------------------------------------------------------------------
-    # PHASE 5: YEAR 2 AUTUMN PRE-STABILIZATION (Ticks 600 .. 620)
+    # PHASE 5: THE GRAND GOLDEN HARVEST (Ticks 715 .. 792)
     # -------------------------------------------------------------------------
-    for tick in range(600, 620):
-        quota = [(oak, 5), (stonepine, 5), (purple_canopy, 5), (thornberry, 5)]
-        acts = allocate_wave(tick, quota, cells, plantable, occupied_positions)
-        all_actions.extend(acts)
-
-    # -------------------------------------------------------------------------
-    # PHASE 6: THE GRAND GOLDEN HARVEST (Ticks 715 .. 790)
-    # The climax of Level 3:
-    # 1. Clear occupied positions (earlier generations have decayed; soil regenerated).
-    # 2. Plant 75 ticks * 20 plants/tick = 1,500 FRESH plants across 15+ species.
-    # 3. Every plant lives 10 to 85 ticks: 100% ALIVE, zero nutrient death at Tick 800!
-    # 4. Perfectly uniform distribution across all species -> Maximum Shannon Entropy H!
-    # -------------------------------------------------------------------------
-    occupied_positions.clear()  # Reclaim plantable cells across the 150x150 map
+    occupied_positions.clear()  # Reclaim all plantable cells
 
     grand_species_pool = [
         grass,
@@ -312,20 +280,31 @@ def solve():
         thornberry,
         twilight,
         stonepine,
+        luminescent_fungi,
         emberleaf,
         deeproot_fern,
         purple_canopy,
-        radiant_sunflower,
     ]
 
-    per_species_per_tick = max(1, MAX_PLANTS_PER_TICK // len(grand_species_pool))
-    harvest_quota = [(p, per_species_per_tick) for p in grand_species_pool]
+    species_by_idx = {p.index: p for p in grand_species_pool}
+    species_indices = [p.index for p in grand_species_pool]
+    num_species = len(species_indices)
+    cycle_idx = 0
 
-    for tick in range(715, 791):
-        acts = allocate_wave(tick, harvest_quota, cells, plantable, occupied_positions)
+    for tick in range(715, 793):
+        # Count quota by index to prevent unhashable PlantInfo error
+        idx_counts = defaultdict(int)
+        for _ in range(MAX_PLANTS_PER_TICK):
+            s_idx = species_indices[cycle_idx % num_species]
+            idx_counts[s_idx] += 1
+            cycle_idx += 1
+
+        quota = [(species_by_idx[i], count) for i, count in idx_counts.items()]
+        acts = allocate_wave(tick, quota, cells, plantable, occupied_positions)
         all_actions.extend(acts)
-        if len(occupied_positions) >= len(plantable):
-            break
+
+        if len(occupied_positions) >= len(plantable) - 20:
+            occupied_positions.clear()
 
     # -------------------------------------------------------------------------
     # ENCODE SUBMISSION JSON
@@ -353,7 +332,7 @@ def solve():
     print(f"    - Submission File: {output_path}")
     print(f"    - Total Scheduled Actions: {len(all_actions)}")
     print(f"    - Active Planting Ticks: {len(submission['actions'])}")
-    print(f"    - Grand Harvest Living Batch (Ticks 715-790): {sum(len(v) for k, v in grouped.items() if k >= 715)} plants")
+    print(f"    - Grand Harvest Living Batch (Ticks 715-792): {sum(len(v) for k, v in grouped.items() if k >= 715)} plants")
 
 
 if __name__ == "__main__":
