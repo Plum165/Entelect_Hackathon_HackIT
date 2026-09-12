@@ -1,6 +1,6 @@
-# The Root Thing - Level 1
+# Root Cause Analysis - Level 1
 
-Level 1 is the 50 x 50, 500-tick plant-grid instance for the Entelect Hack<IT> Solo competition. It is the only checked-in level input with `animals_enabled` set to `false`.
+Level 1 is the 50 x 50, 500-tick plant-grid instance for the Entelect Hack<IT> Solo **Root Cause Analysis** challenge. The ecologist's objective is to build a diverse, long-lived biological sample on Photospheria. It is the only checked-in level input with `animals_enabled` set to `false`.
 
 ## Input
 

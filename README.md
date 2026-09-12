@@ -1,6 +1,6 @@
-# Entelect Hack<IT> Solo - The Root Thing
+# Entelect Hack<IT> Solo - Root Cause Analysis
 
-This repository contains preparation work and Python submissions for the Entelect Hack<IT> Solo competition. The challenge theme is **The Root Thing**: an optimisation problem based on establishing and managing a plant ecosystem on a supplied grid.
+This repository contains preparation work and Python submissions for the Entelect Hack<IT> Solo competition. The challenge is **Root Cause Analysis**, set on the planet Photospheria. The objective is to build the most useful biological sample by cultivating a diverse and long-lived collection of plant species on a supplied grid.
 
 ## Repository status
 
@@ -18,6 +18,14 @@ The plant and ecosystem reference data is stored in `additional-resources/`:
 - `classifications.json` - plant groups and classifications.
 
 `Level_1/JSON_REFERENCE.md` is the detailed reference for these resources. `Level_1/JSON_REFERENCE_PROMPT.md` is a reusable prompt for regenerating that reference from the repository source files.
+
+## Challenge objective
+
+The simulation rewards final plant diversity and the longevity of plants that
+remain alive at the end of the run. Plants interact through spreading,
+competition, soil preference, environmental features, seasons, events, and,
+when enabled, ecosystem species. Locked plants become available only when
+their conditions are satisfied.
 
 ## Levels
 

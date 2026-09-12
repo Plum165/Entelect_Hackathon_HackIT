@@ -1,6 +1,6 @@
-# The Root Thing - Level 4
+# Root Cause Analysis - Level 4
 
-Level 4 is the largest checked-in plant-grid instance for the Entelect Hack<IT> Solo competition: a 200 x 300 grid running for 800 ticks.
+Level 4 is the largest checked-in plant-grid instance for the Entelect Hack<IT> Solo **Root Cause Analysis** challenge: a 200 x 300 grid running for 800 ticks. The objective is to cultivate the most diverse and long-lived final plant sample on Photospheria.
 
 ## Input
 

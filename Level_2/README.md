@@ -1,6 +1,6 @@
-# The Root Thing - Level 2
+# Root Cause Analysis - Level 2
 
-Level 2 is the 70 x 100, 500-tick plant-grid instance for the Entelect Hack<IT> Solo competition.
+Level 2 is the 70 x 100, 500-tick plant-grid instance for the Entelect Hack<IT> Solo **Root Cause Analysis** challenge. The objective is to cultivate the most diverse and long-lived final plant sample on Photospheria.
 
 ## Input
 

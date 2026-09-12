@@ -1,6 +1,6 @@
-# The Root Thing - Level 3
+# Root Cause Analysis - Level 3
 
-Level 3 is the 150 x 150, 800-tick plant-grid instance for the Entelect Hack<IT> Solo competition.
+Level 3 is the 150 x 150, 800-tick plant-grid instance for the Entelect Hack<IT> Solo **Root Cause Analysis** challenge. The objective is to cultivate the most diverse and long-lived final plant sample on Photospheria.
 
 ## Input
 
