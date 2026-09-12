@@ -2,7 +2,7 @@
 import json, os, random
 from collections import defaultdict
 
-INPUT_FILE = "3.json" if os.path.exists("3.json") else "4.json"
+INPUT_FILE = "3.json"
 OUTPUT_FILE = "submission.json"
 MAX_PLANTS_PER_TICK = 20
 
@@ -10,7 +10,7 @@ def solve():
     script_dir = os.path.dirname(os.path.abspath(__file__))
     input_path = os.path.join(script_dir, INPUT_FILE)
     if not os.path.exists(input_path):
-        input_path = "3.json" if os.path.exists("3.json") else "4.json"
+        input_path = "3.json"
 
     with open(input_path, "r", encoding="utf-8") as f:
         data = json.load(f)
