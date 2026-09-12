@@ -1,24 +1,31 @@
 #!/usr/bin/env python3
 """
-Entelect University Cup 2 / HackIT - Level 4 DP Transportation Solver
-====================================================================
-World Size: 200 x 300 (60,000 cells) | Ticks: 800
-Max Actions: 20 plants/tick
+Entelect University Cup 2 / HackIT - Master Dynamic Unlock Solver
+================================================================
+Compatible with Level 1, Level 2, Level 3, and Level 4.
 
-Formulation:
-1. Dynamic plantable cell detection (terrain == 0 only).
-2. Exact 5-way uniform integer partition guaranteeing H = 0.46867.
-3. Max-weight bipartite soil matching maximizing growth rates on preferred soil.
-4. Dynamically calculated harvest window directly before Tick 800:
-   - 100% plantable cell saturation.
-   - Zero cell collisions ("plant already occupies cell").
-   - Zero unlock condition denials.
-   - Zero nutrient starvation deaths at Tick 800.
+True Plant Indices:
+- [1] Grass
+- [2] Rose Bush
+- [3] Blue Moss
+- [4] Crimson Vine
+- [5] Dwarf Sunflower
+- [6] Lavender
+- [7] Orange Blossom
+- [8] Silver Fern
+- [10] Purple Canopy Tree
+- [11] Stone Reed
+- [12] Oak Tree
+- [15] Moonpetal Lily
+- [20] Skyvine
+- [27] Living Topiary
 """
 
 import json
+import math
 import os
 import random
+import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Set, Tuple
@@ -27,10 +34,6 @@ from typing import Any, Dict, List, Set, Tuple
 # ============================================================
 # CONFIGURATION
 # ============================================================
-
-INPUT_FILE = "4.json"
-FALLBACK_INPUT = "3.json"
-OUTPUT_FILE = "submission.json"
 
 RANDOM_SEED = 42
 MAX_PLANTS_PER_TICK = 20
@@ -52,6 +55,9 @@ class Cell:
 class PlantInfo:
     index: int
     name: str
+    time_to_maturity: float = 1.0
+    spread_rate: float = 0.0
+    spread_range: float = 0.0
     preferred_soil: List[int] = field(default_factory=list)
 
 
@@ -67,6 +73,9 @@ def resolve_path(filename: str) -> str:
         os.path.join(current_dir, "additional-resources", filename),
         os.path.join(os.getcwd(), filename),
         os.path.join(os.getcwd(), "additional-resources", filename),
+        os.path.join(os.getcwd(), "Level_1", filename),
+        os.path.join(os.getcwd(), "Level_2", filename),
+        os.path.join(os.getcwd(), "Level_3", filename),
         os.path.join(os.getcwd(), "Level_4", filename),
     ]
     for path in candidates:
@@ -80,85 +89,108 @@ def load_json(path: str) -> Any:
         return json.load(f)
 
 
+def get_plant_catalogue() -> Dict[str, PlantInfo]:
+    data = load_json(resolve_path("plant_dataset.json"))
+    catalogue = {}
+    for raw in data:
+        idx = int(raw["index"])
+        name = str(raw["plant"])
+        growth = raw.get("growth", {})
+        preferred_soil = [
+            int(s) for s in raw.get("preferred_soil", [])
+            if isinstance(s, (int, str)) and str(s).isdigit()
+        ]
+        catalogue[name] = PlantInfo(
+            index=idx,
+            name=name,
+            time_to_maturity=float(growth.get("time_to_maturity", 1.0)),
+            spread_rate=float(growth.get("spread_rate", 0.0)),
+            spread_range=float(growth.get("spread_range", 0.0)),
+            preferred_soil=preferred_soil,
+        )
+    return catalogue
+
+
 # ============================================================
-# DYNAMIC PROGRAMMING / BIPARTITE SOIL MATCHING
+# SMART SOIL & SPATIAL ALLOCATOR
 # ============================================================
 
-def solve_soil_transportation_problem(
-    plantable_cells: List[Tuple[int, int]],
-    cells_dict: Dict[Tuple[int, int], Cell],
-    species_list: List[PlantInfo],
-    max_total_plants: int,
-) -> List[Tuple[PlantInfo, Tuple[int, int]]]:
-    """
-    Solves the constrained transportation problem:
-    Assigns each cell to exactly 1 species to maximize total preferred soil matches
-    subject to exact uniform capacity constraints.
-    """
-    total_to_plant = min(len(plantable_cells), max_total_plants)
-    num_species = len(species_list)
-    base_cap = total_to_plant // num_species
-    remainder = total_to_plant % num_species
-
-    target_caps = {p.index: base_cap + (1 if i < remainder else 0) for i, p in enumerate(species_list)}
-    assigned_counts = {p.index: 0 for p in species_list}
-
-    # Group plantable cells by soil type
-    soil_to_cells = defaultdict(list)
-    for pos in plantable_cells:
-        soil_to_cells[cells_dict[pos].soil].append(pos)
+def allocate_wave(
+    tick: int,
+    species_requests: List[Tuple[PlantInfo, int]],
+    cells: Dict[Tuple[int, int], Cell],
+    plantable_coords: List[Tuple[int, int]],
+    occupied_positions: Set[Tuple[int, int]],
+) -> List[Dict[str, Any]]:
+    actions = []
     
-    for bucket in soil_to_cells.values():
+    # Bucket open plantable cells by soil type
+    soil_buckets = defaultdict(list)
+    for pos in plantable_coords:
+        if pos not in occupied_positions:
+            soil_buckets[cells[pos].soil].append(pos)
+
+    for bucket in soil_buckets.values():
         random.shuffle(bucket)
 
-    matched_assignments: List[Tuple[PlantInfo, Tuple[int, int]]] = []
-    unassigned_cells: List[Tuple[int, int]] = []
-
-    # Pass 1: Greedy Max-Affinity Match
-    for soil_id, cell_bucket in soil_to_cells.items():
-        candidate_species = [p for p in species_list if soil_id in p.preferred_soil]
+    for plant, count in species_requests:
+        allocated = 0
         
-        while cell_bucket and len(matched_assignments) < total_to_plant:
-            candidate_species.sort(key=lambda p: target_caps[p.index] - assigned_counts[p.index], reverse=True)
-            chosen_species = next((p for p in candidate_species if assigned_counts[p.index] < target_caps[p.index]), None)
+        # 1. Match preferred soil
+        for s_id in plant.preferred_soil:
+            bucket = soil_buckets[s_id]
+            while bucket and allocated < count and len(actions) < MAX_PLANTS_PER_TICK:
+                pos = bucket.pop()
+                if pos in occupied_positions:
+                    continue
+                actions.append({
+                    "tick": tick,
+                    "plant_index": plant.index,
+                    "row": pos[0],
+                    "col": pos[1],
+                })
+                occupied_positions.add(pos)
+                allocated += 1
 
-            if chosen_species:
-                pos = cell_bucket.pop()
-                matched_assignments.append((chosen_species, pos))
-                assigned_counts[chosen_species.index] += 1
-            else:
-                break
+        # 2. Fallback to any open plantable soil
+        if allocated < count and len(actions) < MAX_PLANTS_PER_TICK:
+            for s_id, bucket in soil_buckets.items():
+                while bucket and allocated < count and len(actions) < MAX_PLANTS_PER_TICK:
+                    pos = bucket.pop()
+                    if pos in occupied_positions:
+                        continue
+                    actions.append({
+                        "tick": tick,
+                        "plant_index": plant.index,
+                        "row": pos[0],
+                        "col": pos[1],
+                    })
+                    occupied_positions.add(pos)
+                    allocated += 1
 
-        unassigned_cells.extend(cell_bucket)
-
-    # Pass 2: Fill remaining quotas across open cells
-    random.shuffle(unassigned_cells)
-    for pos in unassigned_cells:
-        if len(matched_assignments) >= total_to_plant:
+        if len(actions) >= MAX_PLANTS_PER_TICK:
             break
-        available_species = [p for p in species_list if assigned_counts[p.index] < target_caps[p.index]]
-        if not available_species:
-            break
-        available_species.sort(key=lambda p: target_caps[p.index] - assigned_counts[p.index], reverse=True)
-        chosen_species = available_species[0]
-        
-        matched_assignments.append((chosen_species, pos))
-        assigned_counts[chosen_species.index] += 1
 
-    return matched_assignments
+    return actions
 
 
 # ============================================================
-# MASTER LEVEL 4 SOLVER
+# MAIN SOLVER LOGIC
 # ============================================================
 
 def solve():
     random.seed(RANDOM_SEED)
 
-    # 1. Load Input Map (200x300 = 60,000 cells)
-    input_file = resolve_path(INPUT_FILE)
-    if not os.path.exists(input_file):
-        input_file = resolve_path(FALLBACK_INPUT)
+    # Detect level input file
+    input_file = None
+    for candidate in ["4.json", "3.json", "2.json", "1.json"]:
+        p = resolve_path(candidate)
+        if os.path.exists(p):
+            input_file = p
+            break
+
+    if input_file is None:
+        raise FileNotFoundError("Could not locate any level input JSON.")
 
     input_data = load_json(input_file)
     rows = int(input_data.get("rows", 200))
@@ -175,59 +207,134 @@ def solve():
             soil=int(raw.get("soil", 0)),
         )
 
-    # Strictly filter plantable soil (terrain == 0)
     plantable = [pos for pos, cell in cells.items() if cell.terrain == 0]
     if not plantable:
         plantable = list(cells.keys())
 
-    print(f"[+] Loaded Level 4: {rows}x{cols} grid ({len(plantable)} plantable cells), {ticks} ticks.")
+    print(f"[+] Loaded {os.path.basename(input_file)}: {rows}x{cols} grid ({len(plantable)} plantable cells), {ticks} ticks.")
 
-    # 2. Confirmed 5 Base Species
-    grass = PlantInfo(index=1, name="Grass", preferred_soil=[0, 1])
-    rose = PlantInfo(index=2, name="Rose Bush", preferred_soil=[0, 2])
-    sunflower = PlantInfo(index=3, name="Dwarf Sunflower", preferred_soil=[2])
-    lavender = PlantInfo(index=4, name="Lavender", preferred_soil=[0, 1])
-    oak = PlantInfo(index=5, name="Oak Tree", preferred_soil=[0, 2])
+    # Load Catalogue
+    plants = get_plant_catalogue()
+    plants_by_idx = {p.index: p for p in plants.values()}
 
-    base_species = [grass, rose, sunflower, lavender, oak]
+    # Base 5 Starting Species
+    grass = plants["Grass"]               # Index 1
+    rose = plants["Rose Bush"]            # Index 2
+    sunflower = plants["Dwarf Sunflower"] # Index 5
+    lavender = plants["Lavender"]         # Index 6
+    oak = plants["Oak Tree"]              # Index 12
 
-    # 3. Calculate Optimal Harvest Scheduling
-    # We can plant up to 90 ticks * 20 = 1,800 plants in the safe 100-tick nutrient window
-    max_safe_plants = min(len(plantable), 90 * MAX_PLANTS_PER_TICK)
-    
-    optimal_assignments = solve_soil_transportation_problem(
-        plantable_cells=plantable,
-        cells_dict=cells,
-        species_list=base_species,
-        max_total_plants=max_safe_plants,
-    )
+    # Tier 2 & 3 Unlocks
+    blue_moss = plants.get("Blue Moss", PlantInfo(3, "Blue Moss", preferred_soil=[0, 1]))
+    crimson_vine = plants.get("Crimson Vine", PlantInfo(4, "Crimson Vine", preferred_soil=[0, 1]))
+    orange_blossom = plants.get("Orange Blossom", PlantInfo(7, "Orange Blossom", preferred_soil=[0, 1]))
+    silver_fern = plants.get("Silver Fern", PlantInfo(8, "Silver Fern", preferred_soil=[0, 1]))
+    purple_canopy = plants.get("Purple Canopy Tree", PlantInfo(10, "Purple Canopy Tree", preferred_soil=[0, 1]))
+    stone_reed = plants.get("Stone Reed", PlantInfo(11, "Stone Reed", preferred_soil=[0, 1]))
+    moonpetal = plants.get("Moonpetal Lily", PlantInfo(15, "Moonpetal Lily", preferred_soil=[0, 1]))
+    skyvine = plants.get("Skyvine", PlantInfo(20, "Skyvine", preferred_soil=[0, 1]))
+    living_topiary = plants.get("Living Topiary", PlantInfo(27, "Living Topiary", preferred_soil=[0, 1]))
 
-    random.shuffle(optimal_assignments)
-
-    ticks_needed = (len(optimal_assignments) + MAX_PLANTS_PER_TICK - 1) // MAX_PLANTS_PER_TICK
-    start_tick = max(0, ticks - ticks_needed - 5)
-
-    # 4. Schedule Across Safe Harvest Window
     all_actions = []
-    cur_tick = start_tick
-    tick_count = 0
+    occupied_positions: Set[Tuple[int, int]] = set()
 
-    for plant, (r, c) in optimal_assignments:
-        all_actions.append({
-            "tick": cur_tick,
-            "plant_index": plant.index,
-            "row": r,
-            "col": c,
-        })
-        tick_count += 1
+    is_level_1 = (rows == 50 and cols == 50 and ticks == 500 and "1.json" in input_file)
 
-        if tick_count >= MAX_PLANTS_PER_TICK:
+    if is_level_1:
+        base_5 = [grass, rose, sunflower, lavender, oak]
+        start_tick = 410
+        cur_tick = start_tick
+        
+        total_plants = min(len(plantable), 45 * MAX_PLANTS_PER_TICK)
+        species_queue = [base_5[i % len(base_5)] for i in range(total_plants)]
+        random.shuffle(species_queue)
+
+        while species_queue and cur_tick < ticks:
+            batch = species_queue[:MAX_PLANTS_PER_TICK]
+            species_queue = species_queue[MAX_PLANTS_PER_TICK:]
+
+            counts_by_idx = defaultdict(int)
+            for p in batch:
+                counts_by_idx[p.index] += 1
+
+            requests = [(plants_by_idx[idx], cnt) for idx, cnt in counts_by_idx.items()]
+            acts = allocate_wave(cur_tick, requests, cells, plantable, occupied_positions)
+            all_actions.extend(acts)
             cur_tick += 1
-            tick_count = 0
-            if cur_tick >= ticks:
-                break
 
-    # 5. Format Submission JSON
+    else:
+        # Phase 1: Animal Bootstrap (Ticks 0..15)
+        p1_schedule = [
+            (0,  [(grass, 12), (lavender, 8)]),
+            (1,  [(grass, 12), (lavender, 8)]),
+            (2,  [(grass, 12), (lavender, 8)]),
+            (3,  [(sunflower, 12), (rose, 8)]),
+            (4,  [(sunflower, 12), (rose, 8)]),
+            (5,  [(sunflower, 12), (rose, 8)]),
+            (6,  [(oak, 10), (rose, 10)]),
+            (7,  [(oak, 10), (rose, 10)]),
+            (8,  [(grass, 10), (lavender, 10)]),
+            (9,  [(grass, 10), (sunflower, 10)]),
+        ]
+        for tick, reqs in p1_schedule:
+            acts = allocate_wave(tick, reqs, cells, plantable, occupied_positions)
+            all_actions.extend(acts)
+
+        # Phase 2: Sows Tier 2 species (Ticks 100..115)
+        tier2_pool = [blue_moss, crimson_vine, orange_blossom, stone_reed]
+        for tick in range(100, 115):
+            reqs = [(p, 5) for p in tier2_pool]
+            acts = allocate_wave(tick, reqs, cells, plantable, occupied_positions)
+            all_actions.extend(acts)
+
+        # Phase 3: Sows Tier 3 species (Ticks 200..215)
+        tier3_pool = [purple_canopy, silver_fern, moonpetal, skyvine, living_topiary]
+        for tick in range(200, 215):
+            reqs = [(p, 4) for p in tier3_pool]
+            acts = allocate_wave(tick, reqs, cells, plantable, occupied_positions)
+            all_actions.extend(acts)
+
+        # Phase 4: THE GRAND HARVEST (Last 80 Ticks before simulation end)
+        occupied_positions.clear()
+
+        grand_species_pool = [
+            grass,          # 1
+            rose,           # 2
+            blue_moss,      # 3
+            crimson_vine,   # 4
+            sunflower,      # 5
+            lavender,       # 6
+            orange_blossom, # 7
+            silver_fern,    # 8
+            purple_canopy,  # 10
+            stone_reed,     # 11
+            oak,            # 12
+            moonpetal,      # 15
+            skyvine,        # 20
+            living_topiary, # 27
+        ]
+
+        harvest_start_tick = max(0, ticks - 80)
+        species_idx = 0
+        num_sp = len(grand_species_pool)
+
+        for tick in range(harvest_start_tick, ticks - 5):
+            counts_by_idx = defaultdict(int)
+            for _ in range(MAX_PLANTS_PER_TICK):
+                sp = grand_species_pool[species_idx % num_sp]
+                counts_by_idx[sp.index] += 1
+                species_idx += 1
+
+            requests = [(plants_by_idx[idx], cnt) for idx, cnt in counts_by_idx.items()]
+            acts = allocate_wave(tick, requests, cells, plantable, occupied_positions)
+            all_actions.extend(acts)
+
+            if len(occupied_positions) >= len(plantable) - 20:
+                occupied_positions.clear()
+
+    # -------------------------------------------------------------------------
+    # ENCODE SUBMISSION JSON
+    # -------------------------------------------------------------------------
     grouped = defaultdict(list)
     for a in all_actions:
         grouped[a["tick"]].append({
@@ -243,22 +350,22 @@ def solve():
         ]
     }
 
-    output_path = os.path.join(os.path.dirname(input_file), OUTPUT_FILE)
+    output_path = os.path.join(os.path.dirname(input_file), "submission.json")
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(submission, f, indent=2)
 
-    # 6. Verification Report
-    species_counts = defaultdict(int)
+    counts = defaultdict(int)
     for a in all_actions:
-        species_counts[a["plant_index"]] += 1
+        counts[a["plant_index"]] += 1
 
-    print(f"\n[+] Level 4 DP Transportation Optimization Complete!")
-    print(f"    - Output File: {output_path}")
-    print(f"    - Plantable Cells Filled: {len(all_actions)} / {len(plantable)} ({len(all_actions)/len(plantable):.1%})")
-    print(f"    - Scheduled Harvest Ticks: {min(grouped.keys())} to {max(grouped.keys())} ({len(grouped)} ticks)")
-    print(f"    - Species Distribution (Exact 20% Parity -> H = 0.46867):")
-    for sp in base_species:
-        print(f"        * [{sp.index}] {sp.name:<18}: {species_counts[sp.index]} plants ({species_counts[sp.index]/len(all_actions):.2%})")
+    print(f"\n[+] Optimization Successfully Finished!")
+    print(f"    - File Written: {output_path}")
+    print(f"    - Total Actions: {len(all_actions)}")
+    print(f"    - Active Ticks: {len(submission['actions'])}")
+    print(f"    - Plant Index Breakdown:")
+    for idx in sorted(counts.keys()):
+        pname = plants_by_idx[idx].name if idx in plants_by_idx else f"Index {idx}"
+        print(f"        * [{idx:2d}] {pname:<20}: {counts[idx]} plants ({counts[idx]/len(all_actions):.2%})")
 
 
 if __name__ == "__main__":
