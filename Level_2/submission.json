@@ -1,0 +1,269 @@
+{
+  "actions": [
+    {
+      "tick": 0,
+      "plants": [
+        {
+          "plant_index": 1,
+          "row": 66,
+          "col": 46
+        },
+        {
+          "plant_index": 1,
+          "row": 10,
+          "col": 14
+        },
+        {
+          "plant_index": 1,
+          "row": 6,
+          "col": 14
+        },
+        {
+          "plant_index": 1,
+          "row": 62,
+          "col": 10
+        },
+        {
+          "plant_index": 1,
+          "row": 42,
+          "col": 74
+        },
+        {
+          "plant_index": 1,
+          "row": 50,
+          "col": 26
+        },
+        {
+          "plant_index": 1,
+          "row": 62,
+          "col": 14
+        },
+        {
+          "plant_index": 1,
+          "row": 62,
+          "col": 46
+        },
+        {
+          "plant_index": 1,
+          "row": 10,
+          "col": 66
+        },
+        {
+          "plant_index": 1,
+          "row": 58,
+          "col": 42
+        },
+        {
+          "plant_index": 1,
+          "row": 62,
+          "col": 42
+        },
+        {
+          "plant_index": 1,
+          "row": 58,
+          "col": 46
+        },
+        {
+          "plant_index": 1,
+          "row": 46,
+          "col": 74
+        },
+        {
+          "plant_index": 1,
+          "row": 6,
+          "col": 10
+        },
+        {
+          "plant_index": 1,
+          "row": 46,
+          "col": 78
+        },
+        {
+          "plant_index": 1,
+          "row": 10,
+          "col": 10
+        },
+        {
+          "plant_index": 1,
+          "row": 62,
+          "col": 18
+        },
+        {
+          "plant_index": 1,
+          "row": 14,
+          "col": 66
+        },
+        {
+          "plant_index": 1,
+          "row": 18,
+          "col": 86
+        },
+        {
+          "plant_index": 1,
+          "row": 6,
+          "col": 6
+        }
+      ]
+    },
+    {
+      "tick": 1,
+      "plants": [
+        {
+          "plant_index": 1,
+          "row": 10,
+          "col": 6
+        },
+        {
+          "plant_index": 1,
+          "row": 62,
+          "col": 50
+        }
+      ]
+    },
+    {
+      "tick": 100,
+      "plants": [
+        {
+          "plant_index": 1,
+          "row": 59,
+          "col": 49
+        },
+        {
+          "plant_index": 1,
+          "row": 64,
+          "col": 44
+        },
+        {
+          "plant_index": 1,
+          "row": 19,
+          "col": 84
+        },
+        {
+          "plant_index": 1,
+          "row": 64,
+          "col": 49
+        },
+        {
+          "plant_index": 1,
+          "row": 44,
+          "col": 9
+        },
+        {
+          "plant_index": 1,
+          "row": 59,
+          "col": 44
+        },
+        {
+          "plant_index": 1,
+          "row": 4,
+          "col": 69
+        },
+        {
+          "plant_index": 1,
+          "row": 4,
+          "col": 74
+        },
+        {
+          "plant_index": 1,
+          "row": 9,
+          "col": 14
+        },
+        {
+          "plant_index": 1,
+          "row": 59,
+          "col": 24
+        },
+        {
+          "plant_index": 1,
+          "row": 19,
+          "col": 69
+        },
+        {
+          "plant_index": 1,
+          "row": 44,
+          "col": 74
+        },
+        {
+          "plant_index": 1,
+          "row": 49,
+          "col": 4
+        },
+        {
+          "plant_index": 1,
+          "row": 14,
+          "col": 89
+        },
+        {
+          "plant_index": 1,
+          "row": 44,
+          "col": 14
+        },
+        {
+          "plant_index": 1,
+          "row": 9,
+          "col": 9
+        }
+      ]
+    },
+    {
+      "tick": 200,
+      "plants": [
+        {
+          "plant_index": 1,
+          "row": 12,
+          "col": 66
+        },
+        {
+          "plant_index": 1,
+          "row": 60,
+          "col": 48
+        },
+        {
+          "plant_index": 1,
+          "row": 48,
+          "col": 6
+        },
+        {
+          "plant_index": 1,
+          "row": 60,
+          "col": 42
+        },
+        {
+          "plant_index": 1,
+          "row": 12,
+          "col": 6
+        },
+        {
+          "plant_index": 1,
+          "row": 48,
+          "col": 78
+        },
+        {
+          "plant_index": 1,
+          "row": 6,
+          "col": 84
+        },
+        {
+          "plant_index": 1,
+          "row": 6,
+          "col": 12
+        },
+        {
+          "plant_index": 1,
+          "row": 42,
+          "col": 72
+        },
+        {
+          "plant_index": 1,
+          "row": 12,
+          "col": 12
+        },
+        {
+          "plant_index": 1,
+          "row": 60,
+          "col": 6
+        }
+      ]
+    }
+  ]
+}
