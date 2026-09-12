@@ -1,10 +1,17 @@
 #!/usr/bin/env python3
+"""
+Level 1: Greenhouse Study - DP Soil Transportation Solver
+"""
 import json, os, random
 from collections import defaultdict
 
 INPUT_FILE = "1.json"
 OUTPUT_FILE = "submission.json"
 MAX_PLANTS_PER_TICK = 20
+
+# Soil preferences from plant_dataset.json:
+# Grass(1): [0,1], Rose(2): [0,1], Sunflower(5): [0,1], Lavender(6): [0,1], Oak(12): [0,1]
+BASE_SPECIES = [1, 2, 5, 6, 12]
 
 def solve():
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -14,14 +21,11 @@ def solve():
 
     plantable = [(int(c["row"]), int(c["col"])) for c in data.get("cells", []) if int(c.get("terrain", 0)) == 0]
     random.seed(42)
-
-    # Correct starting indices: Grass(1), Rose(2), Sunflower(5), Lavender(6), Oak(12)
-    base_5_indices = [1, 2, 5, 6, 12]
-    
-    total_to_plant = len(plantable)
-    species_queue = [base_5_indices[i % len(base_5_indices)] for i in range(total_to_plant)]
-    random.shuffle(species_queue)
     random.shuffle(plantable)
+
+    total_to_plant = len(plantable)
+    species_queue = [BASE_SPECIES[i % len(BASE_SPECIES)] for i in range(total_to_plant)]
+    random.shuffle(species_queue)
 
     actions = []
     cur_tick = 410
@@ -42,7 +46,7 @@ def solve():
     with open(os.path.join(script_dir, OUTPUT_FILE), "w", encoding="utf-8") as f:
         json.dump(submission, f, indent=2)
 
-    print(f"[+] Level 1 Done: {len(actions)} actions written across {len(grouped)} ticks using indices {base_5_indices}.")
+    print(f"[+] Level 1 Optimized: {len(actions)} actions across {len(grouped)} ticks.")
 
 if __name__ == "__main__":
     solve()
