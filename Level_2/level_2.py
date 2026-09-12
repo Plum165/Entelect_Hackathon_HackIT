@@ -3,12 +3,36 @@
 Level 2: 2-Billion Exponential Spread Engine
 World: 70x100 (500 ticks) | 8-Species High Spread Pool (1, 2, 4, 5, 6, 7, 11, 12)
 """
-import json, os, random
+import json
+import os
 from collections import defaultdict
 
 INPUT_FILE = "2.json"
 OUTPUT_FILE = "submission.json"
 MAX_PLANTS_PER_TICK = 20
+ACTIVE_7 = [1, 2, 4, 5, 6, 11, 12]
+
+
+def validate_actions(actions, data):
+    plantable = {
+        (int(cell["row"]), int(cell["col"]))
+        for cell in data["cells"]
+        if int(cell["terrain"]) == 0
+    }
+    seen_positions = set()
+    for tick, plants in actions:
+        if not 0 <= tick < int(data["ticks"]):
+            raise ValueError(f"Invalid tick: {tick}")
+        if len(plants) > MAX_PLANTS_PER_TICK:
+            raise ValueError(f"Too many plants at tick {tick}")
+        for plant in plants:
+            position = (plant["row"], plant["col"])
+            if position not in plantable:
+                raise ValueError(f"Non-plantable position: {position}")
+            position_at_tick = (tick, position)
+            if position_at_tick in seen_positions:
+                raise ValueError(f"Duplicate position at tick {tick}: {position}")
+            seen_positions.add(position_at_tick)
 
 def solve():
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -17,47 +41,40 @@ def solve():
         data = json.load(f)
 
     plantable = [(int(c["row"]), int(c["col"])) for c in data.get("cells", []) if int(c.get("terrain", 0)) == 0]
-    random.seed(42)
+    grouped = defaultdict(list)
 
-    actions = []
-
-    # 1. Early Unlock Triggers (Ticks 0..3)
-    p1 = [
-        (0, [1]*10 + [6]*10),
-        (1, [12]*12 + [2]*8),
-        (2, [12]*3 + [1]*5 + [6]*5 + [2]*7),
+    # 15 Grass + 15 Lavender, 15 Oak Tree, and 15 Rose Bush.
+    early_batches = [
+        [1] * 15 + [6] * 5,
+        [6] * 10 + [12] * 10,
+        [12] * 5 + [2] * 15,
     ]
-    for t, batch in p1:
-        for idx, p_idx in enumerate(batch):
-            r, c = plantable[idx % len(plantable)]
-            actions.append({"tick": t, "plant_index": p_idx, "row": r, "col": c})
+    for tick, batch in enumerate(early_batches):
+        for position, plant_index in zip(plantable[:len(batch)], batch):
+            grouped[tick].append({"plant_index": plant_index, "row": position[0], "col": position[1]})
 
-    # 2. Seed Epicenters across Ticks 415..450 (Giving Crimson Vine [rate 1] & Grass [rate 2] 50-85 ticks to spread!)
-    active_8 = [1, 2, 4, 5, 6, 7, 11, 12]
-    total_to_plant = len(plantable)
-    species_queue = [active_8[i % len(active_8)] for i in range(total_to_plant)]
+    # Use the requested seven-species pool in the final-tick lifespan window.
+    species_queue = [ACTIVE_7[i % len(ACTIVE_7)] for i in range(len(plantable))]
     
     harvest_plantable = list(plantable)
-    harvest_plantable.sort(key=lambda pos: (pos[0] % 3, pos[1] % 3, pos[0], pos[1]))
+    harvest_plantable.sort()
 
-    cur_tick = 415
-    while species_queue and harvest_plantable and cur_tick < 480:
+    cur_tick = max(0, int(data["ticks"]) - 97)
+    while species_queue and harvest_plantable and cur_tick < int(data["ticks"]):
         batch_size = min(MAX_PLANTS_PER_TICK, len(species_queue), len(harvest_plantable))
         for _ in range(batch_size):
             p_idx = species_queue.pop(0)
             r, c = harvest_plantable.pop(0)
-            actions.append({"tick": cur_tick, "plant_index": p_idx, "row": r, "col": c})
+            grouped[cur_tick].append({"plant_index": p_idx, "row": r, "col": c})
         cur_tick += 1
 
-    grouped = defaultdict(list)
-    for a in actions:
-        grouped[a["tick"]].append({"plant_index": a["plant_index"], "row": a["row"], "col": a["col"]})
-
-    submission = {"actions": [{"tick": t, "plants": grouped[t]} for t in sorted(grouped.keys())]}
+    actions = [(tick, plants) for tick, plants in sorted(grouped.items())]
+    validate_actions(actions, data)
+    submission = {"actions": [{"tick": tick, "plants": plants} for tick, plants in actions]}
     with open(os.path.join(script_dir, OUTPUT_FILE), "w", encoding="utf-8") as f:
         json.dump(submission, f, indent=2)
 
-    print(f"[+] Level 2 Exponential Engine Done: {len(actions)} seed epicenters active across Ticks {min(grouped.keys())}..{max(grouped.keys())}.")
+    print(f"[+] Level 2 done: {sum(len(plants) for _, plants in actions)} plants across ticks {actions[0][0]}..{actions[-1][0]}.")
 
 if __name__ == "__main__":
     solve()

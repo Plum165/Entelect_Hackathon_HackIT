@@ -14,7 +14,6 @@ Strategy:
 
 import json
 import os
-import random
 import math
 from collections import defaultdict
 
@@ -40,29 +39,25 @@ def solve():
     C_max = rows * cols
 
     plantable = [(int(c["row"]), int(c["col"])) for c in data.get("cells", []) if int(c.get("terrain", 0)) == 0]
-    random.seed(42)
-
-    actions = []
+    grouped = defaultdict(list)
 
     # 1. Early Count-Based Unlock Injection (Ticks 0..2)
-    p1 = [
-        (0, [1]*10 + [6]*10),
-        (1, [12]*12 + [2]*8),
-        (2, [12]*3 + [1]*5 + [6]*5 + [2]*7),
+    early_batches = [
+        [1] * 15 + [6] * 5,
+        [6] * 10 + [12] * 10,
+        [12] * 5 + [2] * 15,
     ]
-    for t, batch in p1:
-        for idx, p_idx in enumerate(batch):
-            r, c = plantable[idx % len(plantable)]
-            actions.append({"tick": t, "plant_index": p_idx, "row": r, "col": c})
+    for tick, batch in enumerate(early_batches):
+        for position, plant_index in zip(plantable[:len(batch)], batch):
+            grouped[tick].append({"plant_index": plant_index, "row": position[0], "col": position[1]})
 
     # 2. Packed Harvest at 98-Tick Lifespan Horizon (Ticks 702 to 762)
     # 1,191 cells / 20 = ~60 ticks
     total_to_plant = len(plantable)
     species_queue = [ACTIVE_7[i % len(ACTIVE_7)] for i in range(total_to_plant)]
-    random.shuffle(species_queue)
     
     harvest_plantable = list(plantable)
-    random.shuffle(harvest_plantable)
+    harvest_plantable.sort()
 
     cur_tick = 702
     harvest_actions = []
@@ -73,20 +68,16 @@ def solve():
             p_idx = species_queue.pop(0)
             r, c = harvest_plantable.pop(0)
             act = {"tick": cur_tick, "plant_index": p_idx, "row": r, "col": c}
-            actions.append(act)
+            grouped[cur_tick].append({"plant_index": p_idx, "row": r, "col": c})
             harvest_actions.append(act)
         cur_tick += 1
 
-    grouped = defaultdict(list)
     lifespans = []
     counts = defaultdict(int)
 
     for a in harvest_actions:
         lifespans.append(T - a["tick"])
         counts[a["plant_index"]] += 1
-
-    for a in actions:
-        grouped[a["tick"]].append({"plant_index": a["plant_index"], "row": a["row"], "col": a["col"]})
 
     submission = {"actions": [{"tick": t, "plants": grouped[t]} for t in sorted(grouped.keys())]}
     output_path = os.path.join(script_dir, OUTPUT_FILE)
