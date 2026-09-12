@@ -94,3 +94,6 @@ The current scripts group plant actions by tick and use zero-based row and colum
 ## Documentation and limitations
 
 The level READMEs document the actual checked-in inputs and implementations. Where the repository does not define a simulator rule, the documentation labels it as unknown rather than assigning a meaning to a numeric code.
+
+<img width="3508" height="2480" alt="Moegamat_Samsodien_EH_Hack_IT__landscape" src="https://github.com/user-attachments/assets/682f1b24-d9a0-4931-80bc-6ccd94900bb7" />
+
