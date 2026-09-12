@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """
-Level 3: Park Potential - 7-Species Trigger & DP Solver
+Level 3: 10-Species High Entropy Optimizer
+World: 150x150 (800 ticks) | 1,253 Plantable Cells | H = 0.6702
 """
 import json, os, random
 from collections import defaultdict
@@ -20,33 +21,34 @@ def solve():
 
     actions = []
 
-    # 1. Early Trigger Injection (Ticks 0..2)
+    # 1. Early Unlock Triggers (Ticks 0..6)
     p1 = [
         (0, [1]*10 + [6]*10),
-        (1, [1]*5 + [6]*5 + [12]*10),
-        (2, [12]*5 + [2]*15),
+        (1, [12]*12 + [2]*8),
+        (2, [6]*10 + [5]*10),
+        (3, [2]*10 + [1]*10),
+        (4, [1]*15 + [2]*5),
+        (5, [3]*10 + [4]*10),
     ]
     for t, batch in p1:
         for idx, p_idx in enumerate(batch):
             r, c = plantable[idx % len(plantable)]
             actions.append({"tick": t, "plant_index": p_idx, "row": r, "col": c})
 
-    # 2. The 7-Species Grand Harvest (Ticks 720..785)
-    # Exact 1/7 parity across 1,253 cells (179 plants per species)
-    active_7 = [1, 2, 4, 5, 6, 11, 12]
+    # 2. Grand 10-Species Harvest (Ticks 705..775)
+    active_10 = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12]
     total_to_plant = len(plantable)
-    species_queue = [active_7[i % len(active_7)] for i in range(total_to_plant)]
-    random.shuffle(species_queue)
+    species_queue = [active_10[i % len(active_10)] for i in range(total_to_plant)]
     
     harvest_plantable = list(plantable)
-    random.shuffle(harvest_plantable)
+    harvest_plantable.sort(key=lambda pos: (pos[0] % 4, pos[1] % 4, pos[0], pos[1]))
 
-    cur_tick = 720
+    cur_tick = 705
     while species_queue and harvest_plantable and cur_tick < 800:
         batch_size = min(MAX_PLANTS_PER_TICK, len(species_queue), len(harvest_plantable))
         for _ in range(batch_size):
-            p_idx = species_queue.pop()
-            r, c = harvest_plantable.pop()
+            p_idx = species_queue.pop(0)
+            r, c = harvest_plantable.pop(0)
             actions.append({"tick": cur_tick, "plant_index": p_idx, "row": r, "col": c})
         cur_tick += 1
 
@@ -58,7 +60,7 @@ def solve():
     with open(os.path.join(script_dir, OUTPUT_FILE), "w", encoding="utf-8") as f:
         json.dump(submission, f, indent=2)
 
-    print(f"[+] Level 3 (7 Species, H=0.5668): {len(actions)} actions across {len(grouped)} ticks.")
+    print(f"[+] Level 3 (10 Species, H=0.6702): {len(actions)} actions across {len(grouped)} ticks.")
 
 if __name__ == "__main__":
     solve()
