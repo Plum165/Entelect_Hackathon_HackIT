@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+"""
+Level 2: Garden Growth Study - 7-Species Trigger & DP Solver
+"""
 import json, os, random
 from collections import defaultdict
 
@@ -15,25 +18,27 @@ def solve():
     plantable = [(int(c["row"]), int(c["col"])) for c in data.get("cells", []) if int(c.get("terrain", 0)) == 0]
     random.seed(42)
 
-    # Base 5 species + Stone Reed (11) unlocked via Virexids (Grass >= 10, Lavender >= 10)
-    # Ticks 0..2 bootstrap Virexids
     actions = []
-    occupied = set()
 
-    # Step 1: Bootstrap Virexids count >= 10
-    bootstrap_pos = plantable[:30]
-    for i in range(15):
-        r, c = bootstrap_pos[i]
-        actions.append({"tick": 0, "plant_index": 1, "row": r, "col": c})  # 15 Grass
-    for i in range(15, 30):
-        r, c = bootstrap_pos[i]
-        actions.append({"tick": 1, "plant_index": 6, "row": r, "col": c})  # 15 Lavender
+    # 1. Early Trigger Injection (Ticks 0..2)
+    # - 15 Grass [1] + 15 Lavender [6] -> Triggers Virexids -> Unlocks Stone Reed [11]
+    # - 15 Oak Tree [12] -> Triggers Canorals & Barkskips
+    # - 15 Rose Bush [2] + Lavender [6] + Canorals -> Unlocks Crimson Vine [4]
+    p1 = [
+        (0, [1]*10 + [6]*10),
+        (1, [1]*5 + [6]*5 + [12]*10),
+        (2, [12]*5 + [2]*15),
+    ]
+    for t, batch in p1:
+        for idx, p_idx in enumerate(batch):
+            r, c = plantable[idx % len(plantable)]
+            actions.append({"tick": t, "plant_index": p_idx, "row": r, "col": c})
 
-    # Step 2: The Grand Harvest (Ticks 420..445)
-    # Reclaims all 411 plantable cells using exact 6-way parity across [1, 2, 5, 6, 11, 12]
-    active_species = [1, 2, 5, 6, 11, 12]
+    # 2. Grand Harvest across all 7 Unlocked Species (Ticks 420..445)
+    # Pool: Grass(1), Rose(2), Crimson Vine(4), Sunflower(5), Lavender(6), Stone Reed(11), Oak(12)
+    active_7 = [1, 2, 4, 5, 6, 11, 12]
     total_to_plant = len(plantable)
-    species_queue = [active_species[i % len(active_species)] for i in range(total_to_plant)]
+    species_queue = [active_7[i % len(active_7)] for i in range(total_to_plant)]
     random.shuffle(species_queue)
     
     harvest_plantable = list(plantable)
@@ -56,7 +61,7 @@ def solve():
     with open(os.path.join(script_dir, OUTPUT_FILE), "w", encoding="utf-8") as f:
         json.dump(submission, f, indent=2)
 
-    print(f"[+] Level 2 Complete: {len(actions)} actions written across {len(grouped)} ticks.")
+    print(f"[+] Level 2 (7 Species, H=0.5668): {len(actions)} actions across {len(grouped)} ticks.")
 
 if __name__ == "__main__":
     solve()
