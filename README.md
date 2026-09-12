@@ -1,84 +1,85 @@
-# 🏰 Entelect Hackathons — University Cup 2
+# Entelect Hack<IT> Solo - The Root Thing
 
-## Optimisation Challenge Preparation
+This repository contains preparation work and Python submissions for the Entelect Hack<IT> Solo competition. The challenge theme is **The Root Thing**: an optimisation problem based on establishing and managing a plant ecosystem on a supplied grid.
 
-This repository contains my preparation and solutions for the **Entelect Hackathons University Cup 2**, including the official individual practice hackathon completed before the main event.
+## Repository status
 
-The University Cup is a high-intensity, single-day optimisation competition for university students across South Africa. Participants are given a problem to solve under time constraints and are ranked according to the quality and efficiency of their solutions.
+The active level inputs are JSON files containing:
 
-> **"Welcome to the Age of Enteland."** 🏰⚔️
+- grid dimensions and tick limits;
+- an `animals_enabled` flag;
+- supplied cells with `row`, `col`, `terrain`, and `soil` values.
 
-The full challenge theme and problem statement for the main event will be revealed during the live briefing.
+The plant and ecosystem reference data is stored in `additional-resources/`:
 
----
+- `plant_dataset.json` - plant indices and plant properties;
+- `plant_unlock_conditions.json` - availability requirements;
+- `animals.json` - ecosystem species, requirements, and effects;
+- `classifications.json` - plant groups and classifications.
 
-## 🎯 About the Competition
+`Level_1/JSON_REFERENCE.md` is the detailed reference for these resources. `Level_1/JSON_REFERENCE_PROMPT.md` is a reusable prompt for regenerating that reference from the repository source files.
 
-**Entelect Hackathons University Cup 2** is a university-focused optimisation hackathon designed around:
+## Levels
 
-- Creative problem solving
-- Algorithmic optimisation
-- Efficient decision-making
-- Working with limited resources and time
-- Iteratively improving solutions
-- Competing through solution quality and leaderboard performance
+| Level | Input | Grid | Ticks | Animals enabled | Plantable cells |
+|---|---|---:|---:|---|---:|
+| 1 | `Level_1/1.json` | 50 x 50 | 500 | No | 720 |
+| 2 | `Level_2/2.json` | 70 x 100 | 500 | Yes | 411 |
+| 3 | `Level_3/3.json` | 150 x 150 | 800 | Yes | 1,253 |
+| 4 | `Level_4/4.json` | 200 x 300 | 800 | Yes | 1,191 |
 
-The event took place on:
+The plantable-cell counts above are calculated from the checked-in inputs by counting cells whose `terrain` value is `0`. The repository does not define the semantic names of the numeric terrain and soil values in the JSON files.
 
-**Saturday, 22 August 2026**
+## Solver approach
 
-**10:00 – 15:00**
+Each `level_n.py` file:
 
-The competition is hosted through the Entelect Hackathons platform, with Discord serving as the primary communication and support channel.
+1. loads its matching level JSON dynamically;
+2. extracts cells with `terrain == 0`;
+3. creates grouped planting actions;
+4. respects the 20-plant-per-tick limit used by the current solver;
+5. writes `submission.json` in that level directory.
 
----
+Levels 2-4 include early planting actions intended to satisfy count-based unlock conditions before the final planting window. Levels 3 and 4 distribute the seven-species pool `[1, 2, 4, 5, 6, 11, 12]`. Level 1 uses the five-species pool `[1, 2, 5, 6, 12]`.
 
-## 🧪 Practice Hackathon
+These are solver strategies, not a replacement for the official simulator. The checked-in repository does not contain a complete local evaluator, so hidden-simulator rules must be confirmed against official challenge documentation.
 
-Before the main competition, an individual practice hackathon was provided to allow participants to become familiar with the Entelect Hackathons platform and the style of optimisation problems used in the competition.
+## Running a level
 
-The practice challenge was:
+Run each script from its own directory, or use an equivalent path:
 
-# 🦏 The Ranger's Rescue Route
+```powershell
+cd Level_1
+python level_1.py
+```
 
-A two-level shortest-path optimisation challenge involving a wildlife ranger navigating conservation areas.
+Repeat with `Level_2`, `Level_3`, or `Level_4` and the matching script. Each run regenerates that level's `submission.json`.
 
-The challenge progressively introduced:
+Python 3.8 or newer is recommended. The solvers use only the Python standard library.
 
-- Weighted graph traversal
-- Dijkstra's algorithm
-- Risk-adjusted edge weights
-- Required intermediate stops
-- Route reconstruction
-- Combinatorial optimisation
-- Branch-and-bound optimisation
+## Submission format
 
-The practice challenge consisted of three levels in this repository.
+The plant solvers write actions in this structure:
 
----
+```json
+{
+  "actions": [
+    {
+      "tick": 403,
+      "plants": [
+        {
+          "plant_index": 1,
+          "row": 0,
+          "col": 21
+        }
+      ]
+    }
+  ]
+}
+```
 
-# 📂 Repository Structure
+The current scripts group plant actions by tick and use zero-based row and column coordinates taken directly from the input cells.
 
-```text
-Practice_hackathon/
-│
-├── level_1/
-│   ├── 1.txt
-│   ├── level_1.py
-│   ├── level_1.ipynb
-│   ├── level1_submission.txt
-│   └── README.md
-│
-├── level_2/
-│   ├── 2.txt
-│   ├── level_2.py
-│   ├── level_2.ipynb
-│   ├── level2_submission.txt
-│   └── README.md
-│
-└── level_3/
-    ├── 3.txt
-    ├── level_3.py
-    ├── level_3.ipynb
-    ├── level3_submission.txt
-    └── README.md
+## Documentation and limitations
+
+The level READMEs document the actual checked-in inputs and implementations. Where the repository does not define a simulator rule, the documentation labels it as unknown rather than assigning a meaning to a numeric code.
