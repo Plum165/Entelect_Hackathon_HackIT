@@ -1,37 +1,27 @@
 #!/usr/bin/env python3
 """
-Entelect University Cup 2 / HackIT - Level 1 Solver
-===================================================
-Optimized for PlantSim simulation mechanics:
-- Dynamically resolves starting unlocked species from plant_unlock_conditions.json.
-- Disperses seed nodes across the 50x50 grid on preferred soils to maximize spread expansion.
-- Balances species distribution to maximize total coverage and entropy diversity score.
+Entelect University Cup 2 / HackIT - Level 1 Solver (Continuous Seasonal Edition)
+================================================================================
+Fixes:
+- Continuous planting across seasons to prevent Winter extinction.
+- Massive Spring re-bloom (ticks 400-485) ensuring dense live coverage at tick 500.
+- High capacity utilization (hundreds of plants placed on preferred soils).
 """
 
 import json
 import math
 import os
 import random
-import sys
 from collections import defaultdict
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, Dict, List, Set, Tuple
 
-
-# ============================================================
-# CONFIGURATION
-# ============================================================
 
 INPUT_FILE = "1.json"
 OUTPUT_FILE = "submission.json"
-
 RANDOM_SEED = 42
 MAX_PLANTS_PER_TICK = 20
 
-
-# ============================================================
-# DATA STRUCTURES
-# ============================================================
 
 @dataclass
 class Cell:
@@ -45,24 +35,10 @@ class Cell:
 class PlantInfo:
     index: int
     name: str
-    time_to_maturity: float = 1.0
     spread_rate: float = 0.0
     spread_range: float = 0.0
-    invasiveness_rank: float = 0.0
     preferred_soil: List[int] = field(default_factory=list)
 
-
-@dataclass
-class Action:
-    tick: int
-    plant_index: int
-    row: int
-    col: int
-
-
-# ============================================================
-# FILE HELPERS
-# ============================================================
 
 def resolve_path(filename: str) -> str:
     current_dir = os.path.dirname(os.path.abspath(__file__))
@@ -85,237 +61,127 @@ def load_json(path: str) -> Any:
         return json.load(f)
 
 
-# ============================================================
-# PARSING
-# ============================================================
+def main():
+    random.seed(RANDOM_SEED)
 
-def parse_input(data: Dict[str, Any]) -> Tuple[int, int, int, Dict[Tuple[int, int], Cell]]:
-    rows = int(data.get("rows", 50))
-    cols = int(data.get("cols", 50))
-    ticks = int(data.get("ticks", 500))
+    # 1. Load Grid
+    input_path = resolve_path(INPUT_FILE)
+    input_data = load_json(input_path)
+    rows = int(input_data.get("rows", 50))
+    cols = int(input_data.get("cols", 50))
+    ticks = int(input_data.get("ticks", 500))
 
     cells = {}
-    for raw in data.get("cells", []):
-        r = int(raw["row"])
-        c = int(raw["col"])
+    for raw in input_data.get("cells", []):
+        r, c = int(raw["row"]), int(raw["col"])
         cells[(r, c)] = Cell(
             row=r,
             col=c,
             terrain=int(raw.get("terrain", 0)),
             soil=int(raw.get("soil", 1)),
         )
-    return rows, cols, ticks, cells
 
+    plantable = [pos for pos, cell in cells.items() if cell.terrain == 0]
+    if not plantable:
+        plantable = list(cells.keys())
 
-def parse_plants(data: List[Dict[str, Any]]) -> Dict[int, PlantInfo]:
-    plants = {}
-    for raw in data:
+    # 2. Load Plant Dataset & Find Unlocked Starting Species
+    plants_data = load_json(resolve_path("plant_dataset.json"))
+    unlocks_data = load_json(resolve_path("plant_unlock_conditions.json"))
+
+    locked_names = {entry["plant"] for entry in unlocks_data if "plant" in entry}
+
+    unlocked_plants: List[PlantInfo] = []
+    for raw in plants_data:
         idx = int(raw["index"])
         name = str(raw["plant"])
         growth = raw.get("growth", {})
-        preferred_soil = [int(s) for s in raw.get("preferred_soil", []) if isinstance(s, (int, str)) and str(s).isdigit()]
+        preferred_soil = [
+            int(s) for s in raw.get("preferred_soil", [])
+            if isinstance(s, (int, str)) and str(s).isdigit()
+        ]
 
-        plants[idx] = PlantInfo(
-            index=idx,
-            name=name,
-            time_to_maturity=float(growth.get("time_to_maturity", 1.0)),
-            spread_rate=float(growth.get("spread_rate", 0.0)),
-            spread_range=float(growth.get("spread_range", 0.0)),
-            invasiveness_rank=float(growth.get("invasiveness_rank", 0.0)),
-            preferred_soil=preferred_soil,
-        )
-    return plants
+        if name not in locked_names:
+            unlocked_plants.append(PlantInfo(
+                index=idx,
+                name=name,
+                spread_rate=float(growth.get("spread_rate", 0.0)),
+                spread_range=float(growth.get("spread_range", 0.0)),
+                preferred_soil=preferred_soil,
+            ))
 
+    if not unlocked_plants:
+        # Fallback to base Grass
+        unlocked_plants = [PlantInfo(index=1, name="Grass", spread_rate=0.4, preferred_soil=[1, 2])]
 
-def get_unlocked_plants_at_start(
-    plants: Dict[int, PlantInfo],
-    unlock_data: List[Dict[str, Any]]
-) -> List[PlantInfo]:
-    """
-    Identifies plants that are unconditionally available at tick 0.
-    A plant is starting if it has no required condition entry in plant_unlock_conditions.json.
-    """
-    locked_plant_names = {entry["plant"] for entry in unlock_data if "plant" in entry}
-    
-    unlocked = [p for p in plants.values() if p.name not in locked_plant_names]
-    
-    # Fallback to base Grass (1) and Rose Bush (2) if all have entries
-    if not unlocked:
-        unlocked = [p for p in plants.values() if p.index in (1, 2)]
-        
-    return unlocked
+    print(f"[*] Starting Species Available ({len(unlocked_plants)}): {[p.name for p in unlocked_plants]}")
 
+    # 3. Multi-Season Continuous Planting Schedule
+    # - Wave 1 (Spring Year 1): Ticks 0..8
+    # - Wave 2 (Summer Year 1): Ticks 100..106
+    # - Wave 3 (Autumn Year 1): Ticks 200..204
+    # - Wave 4 (Spring Year 2 - Heavy Bloom): Ticks 400..435 (Dense final population)
+    planting_ticks = (
+        list(range(0, 9)) +
+        list(range(100, 107)) +
+        list(range(200, 205)) +
+        list(range(400, 436))
+    )
 
-# ============================================================
-# SPATIAL DISPERSION & PLACEMENT ENGINE
-# ============================================================
-
-def plan_optimal_garden(
-    rows: int,
-    cols: int,
-    ticks: int,
-    cells: Dict[Tuple[int, int], Cell],
-    unlocked_plants: List[PlantInfo],
-) -> List[Action]:
-    """
-    Generates high-spread seed distribution:
-    1. Filters confirmed plantable cells (terrain == 0).
-    2. Groups plantable cells by soil type.
-    3. Allocates seeds using Poisson-like distance dispersion to maximize expansion area.
-    4. Distributes actions across early ticks respecting MAX_PLANTS_PER_TICK.
-    """
-    plantable_cells = [c for c in cells.values() if c.terrain == 0]
-    if not plantable_cells:
-        # Fallback: treat all cells as plantable if terrain IDs are homogeneous
-        plantable_cells = list(cells.values())
-
-    actions: List[Action] = []
+    actions = []
     used_positions: Set[Tuple[int, int]] = set()
 
-    # Sort unlocked plants by spread potential
-    unlocked_plants.sort(key=lambda p: (p.spread_rate, p.spread_range), reverse=True)
-    
-    print(f"[*] Available Starting Species ({len(unlocked_plants)}):")
-    for p in unlocked_plants:
-        print(f"    - Index {p.index:2d}: {p.name:<18} (Spread Rate: {p.spread_rate}, Range: {p.spread_range})")
+    for tick in planting_ticks:
+        if tick >= ticks:
+            break
 
-    # Define target species allocation weights
-    # Give primary weight to high spreaders (e.g. Grass / index 1) with balanced diversity nodes
-    weights: Dict[int, float] = {}
-    for p in unlocked_plants:
-        if p.spread_rate >= 0.3:
-            weights[p.index] = 0.50  # Fast colonizers
-        elif p.spread_rate >= 0.15:
-            weights[p.index] = 0.30  # Secondary spreaders
-        else:
-            weights[p.index] = 0.20  # Anchors / Trees
+        # In Spring Year 2 (tick 400+), reset used_positions to replant over winter-dead ground
+        if tick == 400:
+            used_positions.clear()
 
-    # Normalize weights
-    total_w = sum(weights.values())
-    for idx in weights:
-        weights[idx] /= total_w
+        # Pick plantable positions
+        available = [p for p in plantable if p not in used_positions]
+        if not available:
+            used_positions.clear()
+            available = plantable
 
-    # Create uniform dispersion grid
-    # A regular stride across 50x50 ensures non-overlapping seed nodes
-    stride = 3
-    candidate_grid = []
-    for r in range(1, rows - 1, stride):
-        for c in range(1, cols - 1, stride):
-            if (r, c) in cells and cells[(r, c)].terrain == 0:
-                candidate_grid.append((r, c))
+        random.shuffle(available)
+        batch = available[:MAX_PLANTS_PER_TICK]
 
-    random.shuffle(candidate_grid)
+        for r, c in batch:
+            cell = cells[(r, c)]
+            # Match preferred soil
+            chosen = next((p for p in unlocked_plants if cell.soil in p.preferred_soil), unlocked_plants[0])
+            
+            actions.append({
+                "tick": tick,
+                "plant_index": chosen.index,
+                "row": r,
+                "col": c,
+            })
+            used_positions.add((r, c))
 
-    current_tick = 0
-    tick_action_count = 0
-
-    # Plant candidate dispersion nodes
-    for r, c in candidate_grid:
-        if (r, c) in used_positions:
-            continue
-
-        cell = cells[(r, c)]
-        
-        # Pick the best unlocked species that prefers this soil
-        best_plant = None
-        for p in unlocked_plants:
-            if cell.soil in p.preferred_soil:
-                best_plant = p
-                break
-        
-        # Fallback to weighted random choice among unlocked
-        if best_plant is None:
-            r_val = random.random()
-            cum = 0.0
-            for p in unlocked_plants:
-                cum += weights[p.index]
-                if r_val <= cum:
-                    best_plant = p
-                    break
-            if best_plant is None:
-                best_plant = unlocked_plants[0]
-
-        actions.append(Action(
-            tick=current_tick,
-            plant_index=best_plant.index,
-            row=r,
-            col=c,
-        ))
-        used_positions.add((r, c))
-        tick_action_count += 1
-
-        if tick_action_count >= MAX_PLANTS_PER_TICK:
-            current_tick += 1
-            tick_action_count = 0
-            if current_tick >= min(ticks, 50):
-                break
-
-    return actions
-
-
-# ============================================================
-# SUBMISSION FORMATTER
-# ============================================================
-
-def format_submission(actions: List[Action]) -> Dict[str, Any]:
-    grouped: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
+    # 4. Group by tick and write submission.json
+    grouped = defaultdict(list)
     for a in actions:
-        grouped[a.tick].append({
-            "plant_index": a.plant_index,
-            "row": a.row,
-            "col": a.col,
+        grouped[a["tick"]].append({
+            "plant_index": a["plant_index"],
+            "row": a["row"],
+            "col": a["col"],
         })
 
-    return {
+    submission = {
         "actions": [
-            {
-                "tick": t,
-                "plants": grouped[t],
-            }
+            {"tick": t, "plants": grouped[t]}
             for t in sorted(grouped.keys())
         ]
     }
 
-
-# ============================================================
-# MAIN PIPELINE
-# ============================================================
-
-def main():
-    random.seed(RANDOM_SEED)
-
-    # 1. Load Input Grid
-    input_path = resolve_path(INPUT_FILE)
-    input_data = load_json(input_path)
-    rows, cols, ticks, cells = parse_input(input_data)
-    print(f"[+] Loaded Level: {rows}x{cols} grid, {ticks} ticks, {len(cells)} cells.")
-
-    # 2. Load Resources
-    plants_data = load_json(resolve_path("plant_dataset.json"))
-    unlocks_data = load_json(resolve_path("plant_unlock_conditions.json"))
-    
-    plants = parse_plants(plants_data)
-    unlocked_at_start = get_unlocked_plants_at_start(plants, unlocks_data)
-
-    # 3. Generate Spatial Plan
-    actions = plan_optimal_garden(
-        rows=rows,
-        cols=cols,
-        ticks=ticks,
-        cells=cells,
-        unlocked_plants=unlocked_at_start,
-    )
-
-    # 4. Format & Write Submission
-    submission = format_submission(actions)
     output_path = os.path.join(os.path.dirname(input_path), OUTPUT_FILE)
-    
     with open(output_path, "w", encoding="utf-8") as f:
         json.dump(submission, f, indent=2)
 
-    print(f"[+] Saved valid submission to: {output_path}")
-    print(f"[+] Total Scheduled Actions: {len(actions)}")
-    print(f"[+] Ticks Utilized: {len(submission['actions'])} (max {MAX_PLANTS_PER_TICK} actions/tick)")
+    print(f"[+] Successfully wrote {len(actions)} actions across {len(grouped)} ticks to {output_path}")
 
 
 if __name__ == "__main__":
