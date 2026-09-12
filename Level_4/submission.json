@@ -702,7 +702,12 @@
           "plant_index": 4,
           "row": 15,
           "col": 70
-        },
+        }
+      ]
+    },
+    {
+      "tick": 706,
+      "plants": [
         {
           "plant_index": 5,
           "row": 15,
@@ -732,12 +737,7 @@
           "plant_index": 12,
           "row": 20,
           "col": 50
-        }
-      ]
-    },
-    {
-      "tick": 706,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 20,
@@ -777,7 +777,12 @@
           "plant_index": 10,
           "row": 45,
           "col": 120
-        },
+        }
+      ]
+    },
+    {
+      "tick": 707,
+      "plants": [
         {
           "plant_index": 11,
           "row": 50,
@@ -837,12 +842,7 @@
           "plant_index": 12,
           "row": 170,
           "col": 110
-        }
-      ]
-    },
-    {
-      "tick": 707,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 185,
@@ -852,7 +852,12 @@
           "plant_index": 2,
           "row": 185,
           "col": 45
-        },
+        }
+      ]
+    },
+    {
+      "tick": 708,
+      "plants": [
         {
           "plant_index": 3,
           "row": 185,
@@ -922,7 +927,12 @@
           "plant_index": 6,
           "row": 15,
           "col": 46
-        },
+        }
+      ]
+    },
+    {
+      "tick": 709,
+      "plants": [
         {
           "plant_index": 7,
           "row": 15,
@@ -942,12 +952,7 @@
           "plant_index": 12,
           "row": 15,
           "col": 76
-        }
-      ]
-    },
-    {
-      "tick": 708,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 15,
@@ -997,7 +1002,12 @@
           "plant_index": 12,
           "row": 25,
           "col": 111
-        },
+        }
+      ]
+    },
+    {
+      "tick": 710,
+      "plants": [
         {
           "plant_index": 1,
           "row": 30,
@@ -1047,12 +1057,7 @@
           "plant_index": 12,
           "row": 50,
           "col": 116
-        }
-      ]
-    },
-    {
-      "tick": 709,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 55,
@@ -1072,7 +1077,12 @@
           "plant_index": 4,
           "row": 60,
           "col": 36
-        },
+        }
+      ]
+    },
+    {
+      "tick": 711,
+      "plants": [
         {
           "plant_index": 5,
           "row": 60,
@@ -1142,7 +1152,12 @@
           "plant_index": 10,
           "row": 10,
           "col": 27
-        },
+        }
+      ]
+    },
+    {
+      "tick": 712,
+      "plants": [
         {
           "plant_index": 11,
           "row": 10,
@@ -1152,12 +1167,7 @@
           "plant_index": 12,
           "row": 10,
           "col": 47
-        }
-      ]
-    },
-    {
-      "tick": 710,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 10,
@@ -1217,7 +1227,12 @@
           "plant_index": 2,
           "row": 20,
           "col": 47
-        },
+        }
+      ]
+    },
+    {
+      "tick": 713,
+      "plants": [
         {
           "plant_index": 3,
           "row": 20,
@@ -1257,12 +1272,7 @@
           "plant_index": 12,
           "row": 30,
           "col": 12
-        }
-      ]
-    },
-    {
-      "tick": 711,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 30,
@@ -1292,7 +1302,12 @@
           "plant_index": 6,
           "row": 50,
           "col": 97
-        },
+        }
+      ]
+    },
+    {
+      "tick": 714,
+      "plants": [
         {
           "plant_index": 7,
           "row": 50,
@@ -1366,7 +1381,7 @@
       ]
     },
     {
-      "tick": 712,
+      "tick": 715,
       "plants": [
         {
           "plant_index": 1,
@@ -1437,7 +1452,12 @@
           "plant_index": 4,
           "row": 15,
           "col": 48
-        },
+        }
+      ]
+    },
+    {
+      "tick": 716,
+      "plants": [
         {
           "plant_index": 5,
           "row": 15,
@@ -1467,12 +1487,7 @@
           "plant_index": 12,
           "row": 20,
           "col": 48
-        }
-      ]
-    },
-    {
-      "tick": 713,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 20,
@@ -1512,7 +1527,12 @@
           "plant_index": 10,
           "row": 25,
           "col": 108
-        },
+        }
+      ]
+    },
+    {
+      "tick": 717,
+      "plants": [
         {
           "plant_index": 11,
           "row": 25,
@@ -1572,12 +1592,7 @@
           "plant_index": 12,
           "row": 55,
           "col": 18
-        }
-      ]
-    },
-    {
-      "tick": 714,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 55,
@@ -1587,7 +1602,12 @@
           "plant_index": 2,
           "row": 55,
           "col": 73
-        },
+        }
+      ]
+    },
+    {
+      "tick": 718,
+      "plants": [
         {
           "plant_index": 3,
           "row": 60,
@@ -1657,7 +1677,12 @@
           "plant_index": 6,
           "row": 10,
           "col": 24
-        },
+        }
+      ]
+    },
+    {
+      "tick": 719,
+      "plants": [
         {
           "plant_index": 7,
           "row": 10,
@@ -1677,12 +1702,7 @@
           "plant_index": 12,
           "row": 15,
           "col": 19
-        }
-      ]
-    },
-    {
-      "tick": 715,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 15,
@@ -1732,7 +1752,12 @@
           "plant_index": 12,
           "row": 20,
           "col": 44
-        },
+        }
+      ]
+    },
+    {
+      "tick": 720,
+      "plants": [
         {
           "plant_index": 1,
           "row": 20,
@@ -1782,12 +1807,7 @@
           "plant_index": 12,
           "row": 35,
           "col": 14
-        }
-      ]
-    },
-    {
-      "tick": 716,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 35,
@@ -1807,7 +1827,12 @@
           "plant_index": 4,
           "row": 45,
           "col": 14
-        },
+        }
+      ]
+    },
+    {
+      "tick": 721,
+      "plants": [
         {
           "plant_index": 5,
           "row": 50,
@@ -1877,7 +1902,12 @@
           "plant_index": 10,
           "row": 185,
           "col": 44
-        },
+        }
+      ]
+    },
+    {
+      "tick": 722,
+      "plants": [
         {
           "plant_index": 11,
           "row": 185,
@@ -1887,12 +1917,7 @@
           "plant_index": 12,
           "row": 185,
           "col": 234
-        }
-      ]
-    },
-    {
-      "tick": 717,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 190,
@@ -1952,7 +1977,12 @@
           "plant_index": 2,
           "row": 16,
           "col": 35
-        },
+        }
+      ]
+    },
+    {
+      "tick": 723,
+      "plants": [
         {
           "plant_index": 3,
           "row": 16,
@@ -1992,12 +2022,7 @@
           "plant_index": 12,
           "row": 21,
           "col": 45
-        }
-      ]
-    },
-    {
-      "tick": 718,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 21,
@@ -2027,7 +2052,12 @@
           "plant_index": 6,
           "row": 26,
           "col": 105
-        },
+        }
+      ]
+    },
+    {
+      "tick": 724,
+      "plants": [
         {
           "plant_index": 7,
           "row": 26,
@@ -2101,7 +2131,7 @@
       ]
     },
     {
-      "tick": 719,
+      "tick": 725,
       "plants": [
         {
           "plant_index": 1,
@@ -2172,7 +2202,12 @@
           "plant_index": 4,
           "row": 191,
           "col": 230
-        },
+        }
+      ]
+    },
+    {
+      "tick": 726,
+      "plants": [
         {
           "plant_index": 5,
           "row": 191,
@@ -2202,12 +2237,7 @@
           "plant_index": 12,
           "row": 11,
           "col": 46
-        }
-      ]
-    },
-    {
-      "tick": 720,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 11,
@@ -2247,7 +2277,12 @@
           "plant_index": 10,
           "row": 16,
           "col": 66
-        },
+        }
+      ]
+    },
+    {
+      "tick": 727,
+      "plants": [
         {
           "plant_index": 11,
           "row": 16,
@@ -2307,12 +2342,7 @@
           "plant_index": 12,
           "row": 26,
           "col": 116
-        }
-      ]
-    },
-    {
-      "tick": 721,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 41,
@@ -2322,7 +2352,12 @@
           "plant_index": 2,
           "row": 46,
           "col": 16
-        },
+        }
+      ]
+    },
+    {
+      "tick": 728,
+      "plants": [
         {
           "plant_index": 3,
           "row": 46,
@@ -2392,7 +2427,12 @@
           "plant_index": 6,
           "row": 61,
           "col": 61
-        },
+        }
+      ]
+    },
+    {
+      "tick": 729,
+      "plants": [
         {
           "plant_index": 7,
           "row": 171,
@@ -2412,12 +2452,7 @@
           "plant_index": 12,
           "row": 186,
           "col": 41
-        }
-      ]
-    },
-    {
-      "tick": 722,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 186,
@@ -2467,7 +2502,12 @@
           "plant_index": 12,
           "row": 11,
           "col": 42
-        },
+        }
+      ]
+    },
+    {
+      "tick": 730,
+      "plants": [
         {
           "plant_index": 1,
           "row": 11,
@@ -2517,12 +2557,7 @@
           "plant_index": 12,
           "row": 16,
           "col": 82
-        }
-      ]
-    },
-    {
-      "tick": 723,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 21,
@@ -2542,7 +2577,12 @@
           "plant_index": 4,
           "row": 26,
           "col": 12
-        },
+        }
+      ]
+    },
+    {
+      "tick": 731,
+      "plants": [
         {
           "plant_index": 5,
           "row": 26,
@@ -2612,7 +2652,12 @@
           "plant_index": 10,
           "row": 51,
           "col": 107
-        },
+        }
+      ]
+    },
+    {
+      "tick": 732,
+      "plants": [
         {
           "plant_index": 11,
           "row": 51,
@@ -2622,12 +2667,7 @@
           "plant_index": 12,
           "row": 56,
           "col": 22
-        }
-      ]
-    },
-    {
-      "tick": 724,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 56,
@@ -2687,7 +2727,12 @@
           "plant_index": 2,
           "row": 186,
           "col": 237
-        },
+        }
+      ]
+    },
+    {
+      "tick": 733,
+      "plants": [
         {
           "plant_index": 3,
           "row": 191,
@@ -2727,12 +2772,7 @@
           "plant_index": 12,
           "row": 11,
           "col": 43
-        }
-      ]
-    },
-    {
-      "tick": 725,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 11,
@@ -2762,7 +2802,12 @@
           "plant_index": 6,
           "row": 16,
           "col": 48
-        },
+        }
+      ]
+    },
+    {
+      "tick": 734,
+      "plants": [
         {
           "plant_index": 7,
           "row": 16,
@@ -2836,7 +2881,7 @@
       ]
     },
     {
-      "tick": 726,
+      "tick": 735,
       "plants": [
         {
           "plant_index": 1,
@@ -2907,7 +2952,12 @@
           "plant_index": 4,
           "row": 56,
           "col": 23
-        },
+        }
+      ]
+    },
+    {
+      "tick": 736,
+      "plants": [
         {
           "plant_index": 5,
           "row": 56,
@@ -2937,12 +2987,7 @@
           "plant_index": 12,
           "row": 171,
           "col": 108
-        }
-      ]
-    },
-    {
-      "tick": 727,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 181,
@@ -2982,7 +3027,12 @@
           "plant_index": 10,
           "row": 191,
           "col": 233
-        },
+        }
+      ]
+    },
+    {
+      "tick": 737,
+      "plants": [
         {
           "plant_index": 11,
           "row": 1,
@@ -3042,12 +3092,7 @@
           "plant_index": 12,
           "row": 16,
           "col": 44
-        }
-      ]
-    },
-    {
-      "tick": 728,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 16,
@@ -3057,7 +3102,12 @@
           "plant_index": 2,
           "row": 16,
           "col": 54
-        },
+        }
+      ]
+    },
+    {
+      "tick": 738,
+      "plants": [
         {
           "plant_index": 3,
           "row": 16,
@@ -3127,7 +3177,12 @@
           "plant_index": 6,
           "row": 26,
           "col": 114
-        },
+        }
+      ]
+    },
+    {
+      "tick": 739,
+      "plants": [
         {
           "plant_index": 7,
           "row": 36,
@@ -3147,12 +3202,7 @@
           "plant_index": 12,
           "row": 41,
           "col": 124
-        }
-      ]
-    },
-    {
-      "tick": 729,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 46,
@@ -3202,7 +3252,12 @@
           "plant_index": 12,
           "row": 56,
           "col": 44
-        },
+        }
+      ]
+    },
+    {
+      "tick": 740,
+      "plants": [
         {
           "plant_index": 1,
           "row": 56,
@@ -3252,12 +3307,7 @@
           "plant_index": 12,
           "row": 186,
           "col": 49
-        }
-      ]
-    },
-    {
-      "tick": 730,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 186,
@@ -3277,7 +3327,12 @@
           "plant_index": 4,
           "row": 191,
           "col": 224
-        },
+        }
+      ]
+    },
+    {
+      "tick": 741,
+      "plants": [
         {
           "plant_index": 5,
           "row": 191,
@@ -3347,7 +3402,12 @@
           "plant_index": 10,
           "row": 17,
           "col": 35
-        },
+        }
+      ]
+    },
+    {
+      "tick": 742,
+      "plants": [
         {
           "plant_index": 11,
           "row": 17,
@@ -3357,12 +3417,7 @@
           "plant_index": 12,
           "row": 17,
           "col": 55
-        }
-      ]
-    },
-    {
-      "tick": 731,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 17,
@@ -3422,7 +3477,12 @@
           "plant_index": 2,
           "row": 37,
           "col": 15
-        },
+        }
+      ]
+    },
+    {
+      "tick": 743,
+      "plants": [
         {
           "plant_index": 3,
           "row": 42,
@@ -3462,12 +3522,7 @@
           "plant_index": 12,
           "row": 52,
           "col": 110
-        }
-      ]
-    },
-    {
-      "tick": 732,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 52,
@@ -3497,7 +3552,12 @@
           "plant_index": 6,
           "row": 57,
           "col": 70
-        },
+        }
+      ]
+    },
+    {
+      "tick": 744,
+      "plants": [
         {
           "plant_index": 7,
           "row": 167,
@@ -3571,7 +3631,7 @@
       ]
     },
     {
-      "tick": 733,
+      "tick": 745,
       "plants": [
         {
           "plant_index": 1,
@@ -3642,7 +3702,12 @@
           "plant_index": 4,
           "row": 22,
           "col": 91
-        },
+        }
+      ]
+    },
+    {
+      "tick": 746,
+      "plants": [
         {
           "plant_index": 5,
           "row": 27,
@@ -3672,12 +3737,7 @@
           "plant_index": 12,
           "row": 47,
           "col": 91
-        }
-      ]
-    },
-    {
-      "tick": 734,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 47,
@@ -3717,7 +3777,12 @@
           "plant_index": 10,
           "row": 57,
           "col": 26
-        },
+        }
+      ]
+    },
+    {
+      "tick": 747,
+      "plants": [
         {
           "plant_index": 11,
           "row": 57,
@@ -3777,12 +3842,7 @@
           "plant_index": 12,
           "row": 192,
           "col": 231
-        }
-      ]
-    },
-    {
-      "tick": 735,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 7,
@@ -3792,7 +3852,12 @@
           "plant_index": 2,
           "row": 7,
           "col": 52
-        },
+        }
+      ]
+    },
+    {
+      "tick": 748,
+      "plants": [
         {
           "plant_index": 3,
           "row": 7,
@@ -3862,7 +3927,12 @@
           "plant_index": 6,
           "row": 22,
           "col": 52
-        },
+        }
+      ]
+    },
+    {
+      "tick": 749,
+      "plants": [
         {
           "plant_index": 7,
           "row": 22,
@@ -3882,12 +3952,7 @@
           "plant_index": 12,
           "row": 27,
           "col": 97
-        }
-      ]
-    },
-    {
-      "tick": 736,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 27,
@@ -3937,7 +4002,12 @@
           "plant_index": 12,
           "row": 47,
           "col": 92
-        },
+        }
+      ]
+    },
+    {
+      "tick": 750,
+      "plants": [
         {
           "plant_index": 1,
           "row": 52,
@@ -3987,12 +4057,7 @@
           "plant_index": 12,
           "row": 172,
           "col": 107
-        }
-      ]
-    },
-    {
-      "tick": 737,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 182,
@@ -4012,7 +4077,12 @@
           "plant_index": 4,
           "row": 187,
           "col": 42
-        },
+        }
+      ]
+    },
+    {
+      "tick": 751,
+      "plants": [
         {
           "plant_index": 5,
           "row": 187,
@@ -4082,7 +4152,12 @@
           "plant_index": 10,
           "row": 12,
           "col": 53
-        },
+        }
+      ]
+    },
+    {
+      "tick": 752,
+      "plants": [
         {
           "plant_index": 11,
           "row": 17,
@@ -4092,12 +4167,7 @@
           "plant_index": 12,
           "row": 17,
           "col": 38
-        }
-      ]
-    },
-    {
-      "tick": 738,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 17,
@@ -4157,7 +4227,12 @@
           "plant_index": 2,
           "row": 27,
           "col": 98
-        },
+        }
+      ]
+    },
+    {
+      "tick": 753,
+      "plants": [
         {
           "plant_index": 3,
           "row": 27,
@@ -4197,12 +4272,7 @@
           "plant_index": 12,
           "row": 42,
           "col": 13
-        }
-      ]
-    },
-    {
-      "tick": 739,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 42,
@@ -4232,7 +4302,12 @@
           "plant_index": 6,
           "row": 52,
           "col": 108
-        },
+        }
+      ]
+    },
+    {
+      "tick": 754,
+      "plants": [
         {
           "plant_index": 7,
           "row": 52,
@@ -4306,7 +4381,7 @@
       ]
     },
     {
-      "tick": 740,
+      "tick": 755,
       "plants": [
         {
           "plant_index": 1,
@@ -4377,7 +4452,12 @@
           "plant_index": 4,
           "row": 12,
           "col": 54
-        },
+        }
+      ]
+    },
+    {
+      "tick": 756,
+      "plants": [
         {
           "plant_index": 5,
           "row": 17,
@@ -4407,12 +4487,7 @@
           "plant_index": 12,
           "row": 17,
           "col": 64
-        }
-      ]
-    },
-    {
-      "tick": 741,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 17,
@@ -4452,7 +4527,12 @@
           "plant_index": 10,
           "row": 27,
           "col": 114
-        },
+        }
+      ]
+    },
+    {
+      "tick": 757,
+      "plants": [
         {
           "plant_index": 11,
           "row": 37,
@@ -4512,12 +4592,7 @@
           "plant_index": 12,
           "row": 57,
           "col": 24
-        }
-      ]
-    },
-    {
-      "tick": 742,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 57,
@@ -4527,7 +4602,12 @@
           "plant_index": 2,
           "row": 57,
           "col": 44
-        },
+        }
+      ]
+    },
+    {
+      "tick": 758,
+      "plants": [
         {
           "plant_index": 3,
           "row": 57,
@@ -4597,7 +4677,12 @@
           "plant_index": 6,
           "row": 192,
           "col": 229
-        },
+        }
+      ]
+    },
+    {
+      "tick": 759,
+      "plants": [
         {
           "plant_index": 7,
           "row": 192,
@@ -4617,12 +4702,7 @@
           "plant_index": 12,
           "row": 8,
           "col": 45
-        }
-      ]
-    },
-    {
-      "tick": 743,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 8,
@@ -4672,7 +4752,12 @@
           "plant_index": 12,
           "row": 18,
           "col": 15
-        },
+        }
+      ]
+    },
+    {
+      "tick": 760,
+      "plants": [
         {
           "plant_index": 1,
           "row": 18,
@@ -4722,12 +4807,7 @@
           "plant_index": 12,
           "row": 38,
           "col": 15
-        }
-      ]
-    },
-    {
-      "tick": 744,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 43,
@@ -4747,7 +4827,12 @@
           "plant_index": 4,
           "row": 48,
           "col": 90
-        },
+        }
+      ]
+    },
+    {
+      "tick": 761,
+      "plants": [
         {
           "plant_index": 5,
           "row": 48,
@@ -4817,7 +4902,12 @@
           "plant_index": 10,
           "row": 188,
           "col": 45
-        },
+        }
+      ]
+    },
+    {
+      "tick": 762,
+      "plants": [
         {
           "plant_index": 11,
           "row": 188,
@@ -4827,12 +4917,7 @@
           "plant_index": 12,
           "row": 188,
           "col": 235
-        }
-      ]
-    },
-    {
-      "tick": 745,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 188,
@@ -4892,7 +4977,12 @@
           "plant_index": 2,
           "row": 13,
           "col": 71
-        },
+        }
+      ]
+    },
+    {
+      "tick": 763,
+      "plants": [
         {
           "plant_index": 3,
           "row": 13,
@@ -4932,12 +5022,7 @@
           "plant_index": 12,
           "row": 18,
           "col": 61
-        }
-      ]
-    },
-    {
-      "tick": 746,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 18,
@@ -4967,7 +5052,12 @@
           "plant_index": 6,
           "row": 38,
           "col": 16
-        },
+        }
+      ]
+    },
+    {
+      "tick": 764,
+      "plants": [
         {
           "plant_index": 7,
           "row": 43,
@@ -5041,7 +5131,7 @@
       ]
     },
     {
-      "tick": 747,
+      "tick": 765,
       "plants": [
         {
           "plant_index": 1,
@@ -5112,7 +5202,12 @@
           "plant_index": 4,
           "row": 13,
           "col": 47
-        },
+        }
+      ]
+    },
+    {
+      "tick": 766,
+      "plants": [
         {
           "plant_index": 5,
           "row": 13,
@@ -5142,12 +5237,7 @@
           "plant_index": 12,
           "row": 18,
           "col": 47
-        }
-      ]
-    },
-    {
-      "tick": 748,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 18,
@@ -5187,7 +5277,12 @@
           "plant_index": 10,
           "row": 28,
           "col": 117
-        },
+        }
+      ]
+    },
+    {
+      "tick": 767,
+      "plants": [
         {
           "plant_index": 11,
           "row": 33,
@@ -5247,12 +5342,7 @@
           "plant_index": 12,
           "row": 58,
           "col": 22
-        }
-      ]
-    },
-    {
-      "tick": 749,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 58,
@@ -5262,7 +5352,12 @@
           "plant_index": 2,
           "row": 58,
           "col": 32
-        },
+        }
+      ]
+    },
+    {
+      "tick": 768,
+      "plants": [
         {
           "plant_index": 3,
           "row": 58,
@@ -5332,7 +5427,12 @@
           "plant_index": 6,
           "row": 188,
           "col": 237
-        },
+        }
+      ]
+    },
+    {
+      "tick": 769,
+      "plants": [
         {
           "plant_index": 7,
           "row": 193,
@@ -5352,12 +5452,7 @@
           "plant_index": 12,
           "row": 8,
           "col": 48
-        }
-      ]
-    },
-    {
-      "tick": 750,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 8,
@@ -5407,7 +5502,12 @@
           "plant_index": 12,
           "row": 18,
           "col": 48
-        },
+        }
+      ]
+    },
+    {
+      "tick": 770,
+      "plants": [
         {
           "plant_index": 1,
           "row": 18,
@@ -5457,12 +5557,7 @@
           "plant_index": 12,
           "row": 33,
           "col": 123
-        }
-      ]
-    },
-    {
-      "tick": 751,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 38,
@@ -5482,7 +5577,12 @@
           "plant_index": 4,
           "row": 43,
           "col": 123
-        },
+        }
+      ]
+    },
+    {
+      "tick": 771,
+      "plants": [
         {
           "plant_index": 5,
           "row": 48,
@@ -5552,7 +5652,12 @@
           "plant_index": 10,
           "row": 168,
           "col": 108
-        },
+        }
+      ]
+    },
+    {
+      "tick": 772,
+      "plants": [
         {
           "plant_index": 11,
           "row": 173,
@@ -5562,12 +5667,7 @@
           "plant_index": 12,
           "row": 183,
           "col": 43
-        }
-      ]
-    },
-    {
-      "tick": 752,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 183,
@@ -5627,7 +5727,12 @@
           "plant_index": 2,
           "row": 8,
           "col": 54
-        },
+        }
+      ]
+    },
+    {
+      "tick": 773,
+      "plants": [
         {
           "plant_index": 3,
           "row": 8,
@@ -5667,12 +5772,7 @@
           "plant_index": 12,
           "row": 18,
           "col": 49
-        }
-      ]
-    },
-    {
-      "tick": 753,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 18,
@@ -5702,7 +5802,12 @@
           "plant_index": 6,
           "row": 28,
           "col": 119
-        },
+        }
+      ]
+    },
+    {
+      "tick": 774,
+      "plants": [
         {
           "plant_index": 7,
           "row": 38,
@@ -5776,7 +5881,7 @@
       ]
     },
     {
-      "tick": 754,
+      "tick": 775,
       "plants": [
         {
           "plant_index": 1,
@@ -5847,7 +5952,12 @@
           "plant_index": 4,
           "row": 9,
           "col": 55
-        },
+        }
+      ]
+    },
+    {
+      "tick": 776,
+      "plants": [
         {
           "plant_index": 5,
           "row": 14,
@@ -5877,12 +5987,7 @@
           "plant_index": 12,
           "row": 19,
           "col": 40
-        }
-      ]
-    },
-    {
-      "tick": 755,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 19,
@@ -5922,7 +6027,12 @@
           "plant_index": 10,
           "row": 39,
           "col": 15
-        },
+        }
+      ]
+    },
+    {
+      "tick": 777,
+      "plants": [
         {
           "plant_index": 11,
           "row": 44,
@@ -5982,12 +6092,7 @@
           "plant_index": 12,
           "row": 59,
           "col": 65
-        }
-      ]
-    },
-    {
-      "tick": 756,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 169,
@@ -5997,7 +6102,12 @@
           "plant_index": 2,
           "row": 169,
           "col": 110
-        },
+        }
+      ]
+    },
+    {
+      "tick": 778,
+      "plants": [
         {
           "plant_index": 3,
           "row": 184,
@@ -6067,7 +6177,12 @@
           "plant_index": 6,
           "row": 14,
           "col": 46
-        },
+        }
+      ]
+    },
+    {
+      "tick": 779,
+      "plants": [
         {
           "plant_index": 7,
           "row": 14,
@@ -6087,12 +6202,7 @@
           "plant_index": 12,
           "row": 19,
           "col": 16
-        }
-      ]
-    },
-    {
-      "tick": 757,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 19,
@@ -6142,7 +6252,12 @@
           "plant_index": 12,
           "row": 44,
           "col": 16
-        },
+        }
+      ]
+    },
+    {
+      "tick": 780,
+      "plants": [
         {
           "plant_index": 1,
           "row": 44,
@@ -6192,12 +6307,7 @@
           "plant_index": 12,
           "row": 59,
           "col": 51
-        }
-      ]
-    },
-    {
-      "tick": 758,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 59,
@@ -6217,7 +6327,12 @@
           "plant_index": 4,
           "row": 184,
           "col": 41
-        },
+        }
+      ]
+    },
+    {
+      "tick": 781,
+      "plants": [
         {
           "plant_index": 5,
           "row": 184,
@@ -6287,7 +6402,12 @@
           "plant_index": 10,
           "row": 14,
           "col": 52
-        },
+        }
+      ]
+    },
+    {
+      "tick": 782,
+      "plants": [
         {
           "plant_index": 11,
           "row": 14,
@@ -6297,12 +6417,7 @@
           "plant_index": 12,
           "row": 14,
           "col": 77
-        }
-      ]
-    },
-    {
-      "tick": 759,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 19,
@@ -6362,7 +6477,12 @@
           "plant_index": 2,
           "row": 44,
           "col": 17
-        },
+        }
+      ]
+    },
+    {
+      "tick": 783,
+      "plants": [
         {
           "plant_index": 3,
           "row": 44,
@@ -6402,12 +6522,7 @@
           "plant_index": 12,
           "row": 59,
           "col": 37
-        }
-      ]
-    },
-    {
-      "tick": 760,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 59,
@@ -6437,7 +6552,12 @@
           "plant_index": 6,
           "row": 189,
           "col": 227
-        },
+        }
+      ]
+    },
+    {
+      "tick": 784,
+      "plants": [
         {
           "plant_index": 7,
           "row": 189,
@@ -6511,7 +6631,7 @@
       ]
     },
     {
-      "tick": 761,
+      "tick": 785,
       "plants": [
         {
           "plant_index": 1,
@@ -6582,7 +6702,12 @@
           "plant_index": 4,
           "row": 49,
           "col": 83
-        },
+        }
+      ]
+    },
+    {
+      "tick": 786,
+      "plants": [
         {
           "plant_index": 5,
           "row": 49,
@@ -6612,12 +6737,7 @@
           "plant_index": 12,
           "row": 59,
           "col": 33
-        }
-      ]
-    },
-    {
-      "tick": 762,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 59,
@@ -6657,7 +6777,12 @@
           "plant_index": 10,
           "row": 189,
           "col": 233
-        },
+        }
+      ]
+    },
+    {
+      "tick": 787,
+      "plants": [
         {
           "plant_index": 11,
           "row": 189,
@@ -6717,12 +6842,7 @@
           "plant_index": 12,
           "row": 19,
           "col": 14
-        }
-      ]
-    },
-    {
-      "tick": 763,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 19,
@@ -6732,7 +6852,12 @@
           "plant_index": 2,
           "row": 19,
           "col": 44
-        },
+        }
+      ]
+    },
+    {
+      "tick": 788,
+      "plants": [
         {
           "plant_index": 3,
           "row": 19,
@@ -6802,7 +6927,12 @@
           "plant_index": 6,
           "row": 49,
           "col": 119
-        },
+        }
+      ]
+    },
+    {
+      "tick": 789,
+      "plants": [
         {
           "plant_index": 7,
           "row": 54,
@@ -6822,12 +6952,7 @@
           "plant_index": 12,
           "row": 59,
           "col": 29
-        }
-      ]
-    },
-    {
-      "tick": 764,
-      "plants": [
+        },
         {
           "plant_index": 1,
           "row": 59,
@@ -6877,7 +7002,12 @@
           "plant_index": 12,
           "row": 189,
           "col": 234
-        },
+        }
+      ]
+    },
+    {
+      "tick": 790,
+      "plants": [
         {
           "plant_index": 1,
           "row": 189,
