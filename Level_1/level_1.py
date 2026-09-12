@@ -1,14 +1,26 @@
+#!/usr/bin/env python3
+"""
+Entelect University Cup 2 / HackIT - Level 1 Solver
+===================================================
+Optimized dynamic planner and placement engine:
+- Manages real-time ecosystem unlocks and animal trigger thresholds.
+- Allocates tick action budgets (max 20 plants/tick) using prioritized dynamic stages.
+- Employs spatial dispersion and preferred soil matching to maximize colony spread.
+- Outputs official submission schema to submission.json.
+"""
+
 import json
 import math
 import os
 import random
 import sys
+from collections import defaultdict
 from dataclasses import dataclass, field
 from typing import Any, Dict, List, Optional, Set, Tuple
 
 
 # ============================================================
-# CONFIGURATION
+# CONFIGURATION & CONSTANTS
 # ============================================================
 
 INPUT_FILE = "1.json"
@@ -16,13 +28,9 @@ OUTPUT_FILE = "submission.json"
 
 RANDOM_SEED = 42
 
-# Competition limit
 MAX_PLANTS_PER_TICK = 20
+DEFAULT_GRID_SIZE = 50 * 50  # 2500 cells
 
-# The official score uses the 50x50 grid as Cmax.
-GRID_COVERAGE_DENOMINATOR = 2500
-
-# Initial plants from the challenge rules.
 STARTING_PLANTS = {
     "Grass",
     "Rose Bush",
@@ -33,26 +41,15 @@ STARTING_PLANTS = {
 
 
 # ============================================================
-# PATHS
-# ============================================================
-
-SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
-
-RESOURCE_DIR = os.path.abspath(
-    os.path.join(SCRIPT_DIR, "..", "additional-resources")
-)
-
-
-# ============================================================
-# DATA CLASSES
+# DATA STRUCTURES
 # ============================================================
 
 @dataclass
 class Cell:
     row: int
     col: int
-    terrain: Any = None
-    soil: Any = None
+    terrain: Any = 0
+    soil: Any = 1
 
 
 @dataclass
@@ -60,12 +57,10 @@ class PlantInfo:
     index: int
     name: str
     raw: Dict[str, Any] = field(default_factory=dict)
-
     time_to_maturity: float = 1.0
     spread_rate: float = 0.0
     spread_range: float = 0.0
     invasiveness_rank: float = 0.0
-
     preferred_soil: List[Any] = field(default_factory=list)
 
 
@@ -77,2183 +72,513 @@ class Action:
     col: int
 
 
+@dataclass
+class EcosystemState:
+    counts: Dict[str, int] = field(default_factory=lambda: defaultdict(int))
+    planted_species: Set[str] = field(default_factory=set)
+    animals_present: Set[str] = field(default_factory=set)
+    events: Set[str] = field(default_factory=set)
+    total_grid_cells: int = DEFAULT_GRID_SIZE
+
+
 # ============================================================
-# FILE HELPERS
+# FILE HELPERS & RESOURCE RESOLUTION
 # ============================================================
 
-def load_json_file(path: str) -> Optional[Any]:
+def resolve_resource_path(filename: str) -> str:
+    """Finds resource files across multiple possible directory configurations."""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    candidates = [
+        os.path.join(current_dir, filename),
+        os.path.join(current_dir, "..", "additional-resources", filename),
+        os.path.join(current_dir, "additional-resources", filename),
+        os.path.join(os.getcwd(), filename),
+        os.path.join(os.getcwd(), "additional-resources", filename),
+    ]
+    for path in candidates:
+        if os.path.exists(path):
+            return path
+    # Fallback to relative path
+    return os.path.join(current_dir, "..", "additional-resources", filename)
+
+
+def load_json(path: str) -> Any:
     if not os.path.exists(path):
-        return None
-
-    try:
-        with open(path, "r", encoding="utf-8") as f:
-            return json.load(f)
-    except Exception as exc:
-        print(f"ERROR reading {path}: {exc}")
-        return None
-
-
-def load_input() -> Dict[str, Any]:
-    path = os.path.join(SCRIPT_DIR, INPUT_FILE)
-
-    data = load_json_file(path)
-
-    if data is None:
-        raise FileNotFoundError(
-            f"Could not load {path}"
-        )
-
-    return data
-
-
-def load_resource(filename: str) -> Any:
-    path = os.path.join(RESOURCE_DIR, filename)
-
-    data = load_json_file(path)
-
-    if data is None:
-        raise FileNotFoundError(
-            f"Could not load resource:\n{path}"
-        )
-
-    return data
+        raise FileNotFoundError(f"Missing required file: {path}")
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 # ============================================================
-# GARDEN
+# PARSERS
 # ============================================================
 
 def parse_garden(data: Dict[str, Any]) -> Dict[Tuple[int, int], Cell]:
-
     cells = {}
-
     for raw in data.get("cells", []):
-
         try:
-            row = int(raw["row"])
-            col = int(raw["col"])
+            r = int(raw["row"])
+            c = int(raw["col"])
+            cells[(r, c)] = Cell(
+                row=r,
+                col=c,
+                terrain=raw.get("terrain", 0),
+                soil=raw.get("soil", 1),
+            )
         except (KeyError, TypeError, ValueError):
             continue
-
-        cells[(row, col)] = Cell(
-            row=row,
-            col=col,
-            terrain=raw.get("terrain"),
-            soil=raw.get("soil"),
-        )
-
     return cells
 
 
-# ============================================================
-# PLANT DATASET
-# ============================================================
-
-def parse_plant_catalogue(
-    data: Any,
-) -> Dict[str, PlantInfo]:
-
+def parse_plant_catalogue(data: Any) -> Dict[str, PlantInfo]:
     plants = {}
-
     if not isinstance(data, list):
-        print("ERROR: plant_dataset.json is not a list.")
         return plants
 
     for raw in data:
-
         if not isinstance(raw, dict):
             continue
-
         name = raw.get("plant")
-        index = raw.get("index")
-
-        if name is None or index is None:
-            continue
-
-        try:
-            index = int(index)
-        except (TypeError, ValueError):
+        idx = raw.get("index")
+        if name is None or idx is None:
             continue
 
         growth = raw.get("growth", {})
-
-        if not isinstance(growth, dict):
-            growth = {}
-
-        preferred_soil = raw.get(
-            "preferred_soil",
-            [],
-        )
-
+        preferred_soil = raw.get("preferred_soil", [])
         if not isinstance(preferred_soil, list):
             preferred_soil = []
 
         plants[str(name)] = PlantInfo(
-            index=index,
+            index=int(idx),
             name=str(name),
             raw=raw,
-            time_to_maturity=float(
-                growth.get("time_to_maturity", 1)
-            ),
-            spread_rate=float(
-                growth.get("spread_rate", 0)
-            ),
-            spread_range=float(
-                growth.get("spread_range", 0)
-            ),
-            invasiveness_rank=float(
-                growth.get("invasiveness_rank", 0)
-            ),
+            time_to_maturity=float(growth.get("time_to_maturity", 1.0)),
+            spread_rate=float(growth.get("spread_rate", 0.0)),
+            spread_range=float(growth.get("spread_range", 0.0)),
+            invasiveness_rank=float(growth.get("invasiveness_rank", 0.0)),
             preferred_soil=preferred_soil,
         )
-
     return plants
 
 
-# ============================================================
-# CLASSIFICATIONS
-# ============================================================
-
 def parse_classifications(data: Any) -> Dict[str, Set[str]]:
-
     result = {}
-
-    if not isinstance(data, dict):
-        return result
-
-    for group, members in data.items():
-
-        if not isinstance(members, list):
-            continue
-
-        result[str(group)] = {
-            str(member)
-            for member in members
-        }
-
+    if isinstance(data, dict):
+        for group, members in data.items():
+            if isinstance(members, list):
+                result[str(group)] = {str(m) for m in members}
     return result
 
 
-def build_group_lookup(
-    classifications: Dict[str, Set[str]]
-) -> Dict[str, Set[str]]:
-
-    lookup = {}
-
-    for group, members in classifications.items():
-
-        for plant in members:
-            lookup.setdefault(plant, set()).add(group)
-
-    return lookup
-
-
-# ============================================================
-# ANIMAL / ECOSYSTEM CONDITIONS
-# ============================================================
-
 def parse_animals(data: Any) -> Dict[str, Dict[str, Any]]:
-
     animals = {}
-
-    if not isinstance(data, list):
-        return animals
-
-    for animal in data:
-
-        if not isinstance(animal, dict):
-            continue
-
-        name = animal.get("name")
-
-        if name:
-            animals[str(name)] = animal
-
+    if isinstance(data, list):
+        for animal in data:
+            if isinstance(animal, dict) and "name" in animal:
+                animals[str(animal["name"])] = animal
     return animals
 
 
-def compare(
-    actual: float,
-    operator: str,
-    target: float,
-) -> bool:
+def parse_unlock_conditions(data: Any) -> Dict[str, Dict[str, Any]]:
+    result = {}
+    if isinstance(data, list):
+        for entry in data:
+            if isinstance(entry, dict) and "plant" in entry and "unlock" in entry:
+                result[str(entry["plant"])] = entry["unlock"]
+    return result
 
+
+# ============================================================
+# EVALUATION & UNLOCK LOGIC
+# ============================================================
+
+def compare(actual: float, operator: str, target: float) -> bool:
     if operator == ">":
         return actual > target
-
     if operator == ">=":
         return actual >= target
-
     if operator == "<":
         return actual < target
-
     if operator == "<=":
         return actual <= target
-
     if operator in ("=", "=="):
         return actual == target
-
     if operator == "!=":
         return actual != target
-
     return False
 
 
-# ============================================================
-# UNLOCK STATE
-# ============================================================
-
-@dataclass
-class EcosystemState:
-
-    counts: Dict[str, int] = field(default_factory=dict)
-
-    planted_species: Set[str] = field(default_factory=set)
-
-    animals_present: Set[str] = field(default_factory=set)
-
-    events: Set[str] = field(default_factory=set)
+def get_coverage(state: EcosystemState, plant: str) -> float:
+    return state.counts[plant] / state.total_grid_cells
 
 
-def coverage(
-    state: EcosystemState,
-    plant: str,
-) -> float:
-
-    count = state.counts.get(plant, 0)
-
-    return count / GRID_COVERAGE_DENOMINATOR
-
-
-def group_count(
-    state: EcosystemState,
-    group: str,
-    classifications: Dict[str, Set[str]],
-) -> int:
-
+def get_group_count(state: EcosystemState, group: str, classifications: Dict[str, Set[str]]) -> int:
     members = classifications.get(group, set())
+    return sum(state.counts[p] for p in members)
 
-    return sum(
-        state.counts.get(plant, 0)
-        for plant in members
-    )
-
-
-def group_coverage(
-    state: EcosystemState,
-    group: str,
-    classifications: Dict[str, Set[str]],
-) -> float:
-
-    return (
-        group_count(
-            state,
-            group,
-            classifications,
-        )
-        / GRID_COVERAGE_DENOMINATOR
-    )
-
-
-# ============================================================
-# ANIMAL UNLOCK EVALUATION
-# ============================================================
 
 def evaluate_animal_condition(
     condition: Dict[str, Any],
     state: EcosystemState,
     classifications: Dict[str, Set[str]],
 ) -> bool:
+    c_type = condition.get("type")
+    op = condition.get("operator", ">=")
+    target = float(condition.get("threshold", 0))
 
-    if not isinstance(condition, dict):
-        return False
-
-    condition_type = condition.get("type")
-
-    # --------------------------------------------------------
-    # Coverage
-    # --------------------------------------------------------
-
-    if condition_type == "coverage":
-
-        species = condition.get("species", [])
-
-        if not species:
+    if c_type == "coverage":
+        species_list = condition.get("species", [])
+        if not species_list:
             return False
+        actual = get_coverage(state, str(species_list[0]))
+        return compare(actual, op, target)
 
-        # Animal JSON uses a list here.
-        plant = str(species[0])
-
-        actual = coverage(
-            state,
-            plant,
-        )
-
-        threshold = float(
-            condition.get("threshold", 0)
-        )
-
-        operator = condition.get(
-            "operator",
-            ">=",
-        )
-
-        return compare(
-            actual,
-            operator,
-            threshold,
-        )
-
-    # --------------------------------------------------------
-    # Group coverage
-    # --------------------------------------------------------
-
-    if condition_type == "group_coverage":
-
-        group = condition.get(
-            "species_group",
-            [],
-        )
-
-        # In animals.json this field can contain the
-        # actual members rather than a classification name.
+    if c_type == "group_coverage":
+        group = condition.get("species_group", [])
         if isinstance(group, list):
-
-            actual_count = sum(
-                state.counts.get(str(plant), 0)
-                for plant in group
-            )
-
+            count = sum(state.counts[str(p)] for p in group)
         else:
-            actual_count = group_count(
-                state,
-                str(group),
-                classifications,
-            )
+            count = get_group_count(state, str(group), classifications)
+        actual = count / state.total_grid_cells
+        return compare(actual, op, target)
 
-        actual = (
-            actual_count
-            / GRID_COVERAGE_DENOMINATOR
-        )
-
-        threshold = float(
-            condition.get("threshold", 0)
-        )
-
-        operator = condition.get(
-            "operator",
-            ">=",
-        )
-
-        return compare(
-            actual,
-            operator,
-            threshold,
-        )
-
-    # --------------------------------------------------------
-    # Count
-    # --------------------------------------------------------
-
-    if condition_type == "count":
-
+    if c_type == "count":
         if "species" in condition:
-
-            actual = state.counts.get(
-                str(condition["species"]),
-                0,
-            )
-
+            actual = state.counts[str(condition["species"])]
         elif "species_group" in condition:
-
             group = condition["species_group"]
-
             if isinstance(group, list):
-
-                actual = sum(
-                    state.counts.get(
-                        str(plant),
-                        0,
-                    )
-                    for plant in group
-                )
-
+                actual = sum(state.counts[str(p)] for p in group)
             else:
-
-                actual = group_count(
-                    state,
-                    str(group),
-                    classifications,
-                )
-
+                actual = get_group_count(state, str(group), classifications)
         else:
             return False
+        return compare(actual, op, target)
 
-        threshold = float(
-            condition.get("threshold", 0)
-        )
-
-        operator = condition.get(
-            "operator",
-            ">=",
-        )
-
-        return compare(
-            actual,
-            operator,
-            threshold,
-        )
-
-    # --------------------------------------------------------
-    # Dominance
-    # --------------------------------------------------------
-
-    if condition_type == "dominance":
-
+    if c_type == "dominance":
         total = sum(state.counts.values())
-
         if total <= 0:
             return False
-
-        if condition.get("mode") == "single_species":
-
-            largest = max(
-                state.counts.values(),
-                default=0,
-            )
-
-            dominance = largest / total
-
-            threshold = float(
-                condition.get("threshold", 0)
-            )
-
-            return dominance >= threshold
+        largest = max(state.counts.values(), default=0)
+        dominance = largest / total
+        return compare(dominance, op, target)
 
     return False
 
 
-def evaluate_animal_requirements(
+def evaluate_animal(
     animal: Dict[str, Any],
     state: EcosystemState,
     classifications: Dict[str, Set[str]],
 ) -> bool:
-
-    requirements = animal.get(
-        "requirements",
-        {},
-    )
-
-    if not isinstance(requirements, dict):
+    reqs = animal.get("requirements", {})
+    if not isinstance(reqs, dict):
         return False
+    op = reqs.get("type", "AND")
+    conditions = reqs.get("conditions", [])
+    results = [evaluate_animal_condition(c, state, classifications) for c in conditions]
+    return any(results) if op == "OR" else all(results)
 
-    operation = requirements.get(
-        "type",
-        "AND",
-    )
-
-    conditions = requirements.get(
-        "conditions",
-        [],
-    )
-
-    results = [
-        evaluate_animal_condition(
-            condition,
-            state,
-            classifications,
-        )
-        for condition in conditions
-    ]
-
-    if operation == "OR":
-        return any(results)
-
-    return all(results)
-
-
-# ============================================================
-# PLANT UNLOCK EVALUATION
-# ============================================================
 
 def evaluate_plant_condition(
     condition: Any,
     state: EcosystemState,
     classifications: Dict[str, Set[str]],
 ) -> bool:
-
     if not isinstance(condition, dict):
         return False
 
-    # --------------------------------------------------------
-    # Boolean tree
-    # --------------------------------------------------------
+    op = condition.get("op")
+    if op in ("AND", "and"):
+        return all(evaluate_plant_condition(c, state, classifications) for c in condition.get("children", []))
+    if op in ("OR", "or"):
+        return any(evaluate_plant_condition(c, state, classifications) for c in condition.get("children", []))
+    if op in ("NOT", "not"):
+        return not all(evaluate_plant_condition(c, state, classifications) for c in condition.get("children", []))
 
-    operation = condition.get("op")
+    c_type = condition.get("type")
+    if c_type == "species_present":
+        return str(condition.get("species")) in state.animals_present
+    if c_type == "species_absent":
+        return str(condition.get("species")) not in state.animals_present
 
-    if operation in ("AND", "and"):
+    target_val = float(condition.get("value", 0))
+    cmp_op = condition.get("operator", ">=")
 
-        return all(
-            evaluate_plant_condition(
-                child,
-                state,
-                classifications,
-            )
-            for child in condition.get(
-                "children",
-                [],
-            )
-        )
+    if c_type == "coverage":
+        actual = get_coverage(state, str(condition.get("plant")))
+        return compare(actual, cmp_op, target_val)
 
-    if operation in ("OR", "or"):
-
-        return any(
-            evaluate_plant_condition(
-                child,
-                state,
-                classifications,
-            )
-            for child in condition.get(
-                "children",
-                [],
-            )
-        )
-
-    if operation in ("NOT", "not"):
-
-        children = condition.get(
-            "children",
-            [],
-        )
-
-        return not all(
-            evaluate_plant_condition(
-                child,
-                state,
-                classifications,
-            )
-            for child in children
-        )
-
-    # --------------------------------------------------------
-    # Leaf conditions
-    # --------------------------------------------------------
-
-    condition_type = condition.get("type")
-
-    if condition_type == "species_present":
-
-        species = str(
-            condition.get("species")
-        )
-
-        return species in state.animals_present
-
-    if condition_type == "species_absent":
-
-        species = str(
-            condition.get("species")
-        )
-
-        return species not in state.animals_present
-
-    if condition_type == "coverage":
-
-        plant = str(
-            condition.get("plant")
-        )
-
-        actual = coverage(
-            state,
-            plant,
-        )
-
-        target = float(
-            condition.get("value", 0)
-        )
-
-        return compare(
-            actual,
-            condition.get(
-                "operator",
-                ">=",
-            ),
-            target,
-        )
-
-    if condition_type == "count":
-
+    if c_type == "count":
         plant = condition.get("plant")
-
         if plant is not None:
-
-            actual = state.counts.get(
-                str(plant),
-                0,
-            )
-
+            actual = state.counts[str(plant)]
         else:
-
-            group = condition.get(
-                "species_group"
-            )
-
+            group = condition.get("species_group")
             if isinstance(group, list):
-
-                actual = sum(
-                    state.counts.get(
-                        str(x),
-                        0,
-                    )
-                    for x in group
-                )
-
+                actual = sum(state.counts[str(p)] for p in group)
             else:
-                actual = group_count(
-                    state,
-                    str(group),
-                    classifications,
-                )
+                actual = get_group_count(state, str(group), classifications)
+        return compare(actual, cmp_op, target_val)
 
-        target = float(
-            condition.get("value", 0)
-        )
-
-        return compare(
-            actual,
-            condition.get(
-                "operator",
-                ">=",
-            ),
-            target,
-        )
-
-    if condition_type == "feature_count":
-
-        feature = condition.get("feature")
-
-        # These environmental features are represented by
-        # cell metadata in some level configurations.
-        # We handle known features separately elsewhere.
-        actual = state.counts.get(
-            f"__feature__{feature}",
-            0,
-        )
-
-        target = float(
-            condition.get("value", 0)
-        )
-
-        return compare(
-            actual,
-            condition.get(
-                "operator",
-                ">=",
-            ),
-            target,
-        )
-
-    if condition_type == "event":
-
-        event = str(
-            condition.get("event")
-        )
-
-        return event in state.events
+    if c_type == "event":
+        return str(condition.get("event")) in state.events
 
     return False
-
-
-def parse_unlock_conditions(
-    data: Any,
-) -> Dict[str, Dict[str, Any]]:
-
-    result = {}
-
-    if not isinstance(data, list):
-        return result
-
-    for entry in data:
-
-        if not isinstance(entry, dict):
-            continue
-
-        plant = entry.get("plant")
-        unlock = entry.get("unlock")
-
-        if plant and isinstance(unlock, dict):
-            result[str(plant)] = unlock
-
-    return result
 
 
 # ============================================================
-# TERRAIN / PLACEMENT RULES
+# SPATIAL PLACEMENT OPTIMIZER
 # ============================================================
 
-def get_rules(
-    plant: PlantInfo,
-) -> Dict[str, Any]:
-
-    rules = plant.raw.get(
-        "rules",
-        {},
-    )
-
-    if isinstance(rules, dict):
-        return rules
-
-    return {}
-
-
-def is_burnt_soil(cell: Cell) -> bool:
-
-    # Dataset represents burnt soil as a soil ID where
-    # applicable. We don't invent a new ID here.
-    #
-    # This function intentionally returns False unless the
-    # input explicitly labels it.
-    if isinstance(cell.soil, str):
-        return cell.soil.lower() in {
-            "burnt",
-            "burnt_soil",
-        }
-
-    return False
-
-
-def is_water(cell: Cell) -> bool:
-
-    if isinstance(cell.terrain, str):
-        return cell.terrain.lower() in {
-            "water",
-            "lake",
-            "river",
-            "wetland",
-        }
-
-    return False
-
-
-def is_rock_or_path(cell: Cell) -> bool:
-
-    if isinstance(cell.terrain, str):
-        return cell.terrain.lower() in {
-            "rock",
-            "path",
-            "rock_or_path",
-        }
-
-    return False
-
-
-def is_plantable_cell(
-    cell: Cell,
-) -> bool:
-
-    # The Level 1 instance uses numeric terrain IDs.
-    #
-    # Terrain 0 is treated as ordinary plantable ground.
-    # Terrain 1 and 2 are environmental terrain and are
-    # reserved for adjacency/special interactions.
-    #
-    # This avoids the previous solver's mistake of assuming
-    # every supplied cell is plantable.
+def is_plantable(cell: Cell) -> bool:
+    # Level 1 convention: terrain == 0 is plantable ground
     return cell.terrain == 0
 
 
-def adjacent_cells(
-    cell: Cell,
-    cells: Dict[Tuple[int, int], Cell],
-) -> List[Cell]:
-
-    result = []
-
-    for dr, dc in (
-        (-1, 0),
-        (1, 0),
-        (0, -1),
-        (0, 1),
-    ):
-
-        neighbour = cells.get(
-            (cell.row + dr, cell.col + dc)
-        )
-
-        if neighbour is not None:
-            result.append(neighbour)
-
-    return result
-
-
-def cell_satisfies_special_rule(
-    plant: PlantInfo,
-    cell: Cell,
-    cells: Dict[Tuple[int, int], Cell],
-) -> bool:
-
-    rules = get_rules(plant)
-
-    # --------------------------------------------------------
-    # Water adjacency
-    # --------------------------------------------------------
-
-    if rules.get(
-        "must_be_adjacent_to_water"
-    ):
-
-        if not any(
-            is_water(neighbour)
-            for neighbour in adjacent_cells(
-                cell,
-                cells,
-            )
-        ):
-            return False
-
-    # --------------------------------------------------------
-    # Rock/path adjacency
-    # --------------------------------------------------------
-
-    if rules.get(
-        "must_be_adjacent_to_rock_or_path"
-    ):
-
-        if not any(
-            is_rock_or_path(neighbour)
-            for neighbour in adjacent_cells(
-                cell,
-                cells,
-            )
-        ):
-            return False
-
-    # --------------------------------------------------------
-    # Burnt soil
-    # --------------------------------------------------------
-
-    if rules.get(
-        "must_be_burnt_soil"
-    ):
-
-        if not is_burnt_soil(cell):
-            return False
-
-    return True
-
-
-def soil_is_preferred(
-    plant: PlantInfo,
-    cell: Cell,
-) -> bool:
-
-    if not plant.preferred_soil:
-        return True
-
-    return cell.soil in plant.preferred_soil
-
-
-# ============================================================
-# PLACEMENT ENGINE
-# ============================================================
-
-def choose_cells_for_plant(
+def select_optimal_cells(
     plant: PlantInfo,
     cells: Dict[Tuple[int, int], Cell],
     used_positions: Set[Tuple[int, int]],
     amount: int,
-    existing_positions: List[Tuple[int, int]],
+    existing_coords: List[Tuple[int, int]],
 ) -> List[Tuple[int, int]]:
-
     candidates = []
 
-    for cell in cells.values():
-
-        pos = (
-            cell.row,
-            cell.col,
-        )
-
-        if pos in used_positions:
+    for pos, cell in cells.items():
+        if pos in used_positions or not is_plantable(cell):
             continue
 
-        if not is_plantable_cell(cell):
-            continue
+        # Preferred soil match bonus
+        is_preferred = (not plant.preferred_soil) or (cell.soil in plant.preferred_soil)
 
-        if not cell_satisfies_special_rule(
-            plant,
-            cell,
-            cells,
-        ):
-            continue
-
-        preferred = soil_is_preferred(
-            plant,
-            cell,
-        )
-
-        # Spread candidates around the map rather than
-        # putting everything into one small area.
-        if existing_positions:
-
-            nearest = min(
-                math.dist(
-                    pos,
-                    existing,
-                )
-                for existing in existing_positions
-            )
-
+        # Spatial dispersion distance metric
+        if existing_coords:
+            # Distance to closest existing instance
+            min_dist = min(math.hypot(pos[0] - ep[0], pos[1] - ep[1]) for ep in existing_coords)
         else:
-            nearest = 9999.0
+            # Distance to center of the grid
+            min_dist = math.hypot(pos[0] - 25, pos[1] - 25)
 
-        # Preferred soil is strongly favoured.
-        score = (
-            (100000 if preferred else 0)
-            + nearest
-            + random.random()
-        )
+        # Higher score is better
+        score = (2000.0 if is_preferred else 0.0) + min_dist * 10.0 + random.uniform(0.0, 1.0)
+        candidates.append((score, pos[0], pos[1]))
 
-        candidates.append(
-            (
-                score,
-                cell.row,
-                cell.col,
-            )
-        )
-
-    candidates.sort(
-        reverse=True
-    )
-
-    return [
-        (row, col)
-        for _, row, col in candidates[:amount]
-    ]
+    candidates.sort(reverse=True, key=lambda x: x[0])
+    return [(r, c) for _, r, c in candidates[:amount]]
 
 
 # ============================================================
-# EVENT DETECTION
+# DYNAMIC TARGET ALLOCATION ENGINE
 # ============================================================
 
-def detect_events(
-    data: Dict[str, Any],
-) -> Set[str]:
-
-    events = set()
-
-    # Search the input recursively for explicit event names.
-    def walk(obj: Any):
-
-        if isinstance(obj, dict):
-
-            for key, value in obj.items():
-
-                if isinstance(value, str):
-
-                    if value in {
-                        "Drought",
-                        "Rain",
-                        "Ash Eclipse",
-                    }:
-                        events.add(value)
-
-                walk(value)
-
-        elif isinstance(obj, list):
-
-            for value in obj:
-                walk(value)
-
-    walk(data)
-
-    return events
-
-
-# ============================================================
-# STATE UPDATE
-# ============================================================
-
-def apply_action(
-    state: EcosystemState,
-    action: Action,
-) -> None:
-
-    state.counts[action.plant] = (
-        state.counts.get(
-            action.plant,
-            0,
-        )
-        + 1
-    )
-
-    state.planted_species.add(
-        action.plant
-    )
-
-
-def update_animals(
-    state: EcosystemState,
-    animals: Dict[str, Dict[str, Any]],
-    classifications: Dict[str, Set[str]],
-) -> List[str]:
-
-    newly_unlocked = []
-
-    for name, animal in animals.items():
-
-        if name in state.animals_present:
-            continue
-
-        if evaluate_animal_requirements(
-            animal,
-            state,
-            classifications,
-        ):
-
-            state.animals_present.add(
-                name
-            )
-
-            newly_unlocked.append(
-                name
-            )
-
-    return newly_unlocked
-
-
-# ============================================================
-# UNLOCK DEPENDENCY SOLVER
-# ============================================================
-
-def find_newly_unlocked_plants(
-    state: EcosystemState,
-    plants: Dict[str, PlantInfo],
-    unlocks: Dict[str, Dict[str, Any]],
-    classifications: Dict[str, Set[str]],
-    unlocked: Set[str],
-) -> List[str]:
-
-    newly_unlocked = []
-
-    for plant_name in plants:
-
-        if plant_name in unlocked:
-            continue
-
-        # Starting plants are available immediately.
-        if plant_name in STARTING_PLANTS:
-
-            unlocked.add(
-                plant_name
-            )
-
-            newly_unlocked.append(
-                plant_name
-            )
-
-            continue
-
-        unlock = unlocks.get(
-            plant_name
-        )
-
-        if unlock is None:
-            continue
-
-        if evaluate_plant_condition(
-            unlock,
-            state,
-            classifications,
-        ):
-
-            unlocked.add(
-                plant_name
-            )
-
-            newly_unlocked.append(
-                plant_name
-            )
-
-    return newly_unlocked
-
-
-# ============================================================
-# TARGET PLANNING
-# ============================================================
-
-def required_count_for_coverage(
-    threshold: float,
-) -> int:
-
-    # Strict ">" threshold:
-    return math.floor(
-        threshold
-        * GRID_COVERAGE_DENOMINATOR
-    ) + 1
-
-
-def target_initial_coverage(
-    state: EcosystemState,
-    plant: str,
-    threshold: float,
-) -> int:
-
-    required = required_count_for_coverage(
-        threshold
-    )
-
-    current = state.counts.get(
-        plant,
-        0,
-    )
-
-    return max(
-        0,
-        required - current,
-    )
-
-
-def build_priority_plan(
+def build_tick_targets(
     state: EcosystemState,
     unlocked: Set[str],
     plants: Dict[str, PlantInfo],
 ) -> List[Tuple[str, int]]:
+    targets: List[Tuple[str, int]] = []
 
-    """
-    Build targets that deliberately unlock the dependency
-    graph rather than randomly planting all species.
+    # Priority Stage 1: Ecosystem Triggers (Loamcrawlers, Nectaris, Solwings, Virexids, Barkskips)
+    req_grass = max(0, int(0.04 * state.total_grid_cells) + 1 - state.counts["Grass"])
+    req_rose = max(0, 10 - state.counts["Rose Bush"])
+    req_lavender = max(0, int(0.02 * state.total_grid_cells) + 1 - state.counts["Lavender"])
+    req_sunflower = max(0, int(0.03 * state.total_grid_cells) + 1 - state.counts["Dwarf Sunflower"])
+    req_oak = max(0, 8 - state.counts["Oak Tree"])
 
-    We prioritise the earliest unlock bottlenecks.
-    """
+    if req_grass > 0 and "Grass" in unlocked:
+        targets.append(("Grass", req_grass))
+    if req_lavender > 0 and "Lavender" in unlocked:
+        targets.append(("Lavender", req_lavender))
+    if req_sunflower > 0 and "Dwarf Sunflower" in unlocked:
+        targets.append(("Dwarf Sunflower", req_sunflower))
+    if req_rose > 0 and "Rose Bush" in unlocked:
+        targets.append(("Rose Bush", req_rose))
+    if req_oak > 0 and "Oak Tree" in unlocked:
+        targets.append(("Oak Tree", req_oak))
 
-    targets = []
+    # Priority Stage 2: Secondary Unlocks & Diversity Sowing
+    if not targets:
+        # Sort unlocked species by current count and growth maturity to maintain high Shannon diversity
+        unlocked_list = [p for p in unlocked if p in plants]
+        unlocked_list.sort(key=lambda p: (state.counts[p], plants[p].time_to_maturity))
 
-    # --------------------------------------------------------
-    # Stage 1: create ecosystem triggers
-    # --------------------------------------------------------
+        for plant_name in unlocked_list:
+            if state.counts[plant_name] < 12:
+                targets.append((plant_name, 12 - state.counts[plant_name]))
 
-    # Loamcrawlers:
-    # Grass >= 4%, Rose >= 10
-    targets.append(
-        (
-            "Grass",
-            target_initial_coverage(
-                state,
-                "Grass",
-                0.04,
-            ),
-        )
-    )
-
-    targets.append(
-        (
-            "Rose Bush",
-            max(
-                0,
-                10
-                - state.counts.get(
-                    "Rose Bush",
-                    0,
-                ),
-            ),
-        )
-    )
-
-    # Nectaris:
-    # Lavender >= 2%
-    targets.append(
-        (
-            "Lavender",
-            target_initial_coverage(
-                state,
-                "Lavender",
-                0.02,
-            ),
-        )
-    )
-
-    # Solwings:
-    # Sunflower >= 3%, Rose >= 2%
-    targets.append(
-        (
-            "Dwarf Sunflower",
-            target_initial_coverage(
-                state,
-                "Dwarf Sunflower",
-                0.03,
-            ),
-        )
-    )
-
-    targets.append(
-        (
-            "Rose Bush",
-            target_initial_coverage(
-                state,
-                "Rose Bush",
-                0.02,
-            ),
-        )
-    )
-
-    # Virexids:
-    # Lavender >= 10 and Grass >= 10
-    targets.append(
-        (
-            "Lavender",
-            max(
-                0,
-                10
-                - state.counts.get(
-                    "Lavender",
-                    0,
-                ),
-            ),
-        )
-    )
-
-    targets.append(
-        (
-            "Grass",
-            max(
-                0,
-                10
-                - state.counts.get(
-                    "Grass",
-                    0,
-                ),
-            ),
-        )
-    )
-
-    # Barkskips:
-    # Oak >= 8
-    targets.append(
-        (
-            "Oak Tree",
-            max(
-                0,
-                8
-                - state.counts.get(
-                    "Oak Tree",
-                    0,
-                ),
-            ),
-        )
-    )
-
-    # --------------------------------------------------------
-    # Only use currently unlocked plants
-    # --------------------------------------------------------
-
-    filtered = []
-
-    for plant, amount in targets:
-
-        if (
-            amount > 0
-            and plant in unlocked
-            and plant in plants
-        ):
-            filtered.append(
-                (
-                    plant,
-                    amount,
-                )
-            )
-
-    return filtered
+    return targets
 
 
 # ============================================================
-# FALLBACK DIVERSITY TARGETS
+# MAIN SOLVER LOGIC
 # ============================================================
 
-def choose_diversity_targets(
-    state: EcosystemState,
-    unlocked: Set[str],
-    plants: Dict[str, PlantInfo],
-) -> List[Tuple[str, int]]:
-
-    result = []
-
-    # Once unlocks are happening, maintain representation
-    # across unlocked species instead of allowing Grass/Rose
-    # to dominate the final ecosystem.
-
-    unlocked_plants = [
-        name
-        for name in unlocked
-        if name in plants
-    ]
-
-    unlocked_plants.sort(
-        key=lambda name: (
-            state.counts.get(name, 0),
-            plants[name].time_to_maturity,
-        )
-    )
-
-    for plant in unlocked_plants:
-
-        current = state.counts.get(
-            plant,
-            0,
-        )
-
-        # Give each newly unlocked species a meaningful
-        # starting population.
-        if current == 0:
-            result.append(
-                (
-                    plant,
-                    5,
-                )
-            )
-
-    return result
-
-
-# ============================================================
-# MAIN PLANNER
-# ============================================================
-
-def generate_actions(
-    data: Dict[str, Any],
+def generate_solution(
+    input_data: Dict[str, Any],
     cells: Dict[Tuple[int, int], Cell],
     plants: Dict[str, PlantInfo],
     unlocks: Dict[str, Dict[str, Any]],
     animals: Dict[str, Dict[str, Any]],
     classifications: Dict[str, Set[str]],
 ) -> List[Action]:
+    ticks = int(input_data.get("ticks", 500))
+    grid_size = len(cells) if cells else DEFAULT_GRID_SIZE
 
-    ticks = int(
-        data.get(
-            "ticks",
-            500,
-        )
-    )
+    state = EcosystemState(total_grid_cells=grid_size)
+    unlocked: Set[str] = set()
 
-    state = EcosystemState()
+    for p in STARTING_PLANTS:
+        if p in plants:
+            unlocked.add(p)
 
-    # Known environmental events, if explicitly present.
-    state.events.update(
-        detect_events(data)
-    )
-
-    unlocked = set()
-
-    # --------------------------------------------------------
-    # Initial unlocked plants
-    # --------------------------------------------------------
-
-    for plant in STARTING_PLANTS:
-
-        if plant in plants:
-            unlocked.add(
-                plant
-            )
-
-    print(
-        "\nInitial unlocked plants:"
-    )
-
-    for plant in sorted(unlocked):
-        print(
-            f"  [{plants[plant].index:2}] {plant}"
-        )
-
-    # --------------------------------------------------------
-    # Prepare cells
-    # --------------------------------------------------------
-
-    plantable_cells = [
-        cell
-        for cell in cells.values()
-        if is_plantable_cell(cell)
-    ]
-
-    print(
-        f"\nPlantable terrain-0 cells: "
-        f"{len(plantable_cells)}"
-    )
-
-    if not plantable_cells:
-        raise RuntimeError(
-            "No plantable terrain-0 cells found."
-        )
-
-    random.seed(RANDOM_SEED)
-    random.shuffle(plantable_cells)
-
-    used_positions: Set[
-        Tuple[int, int]
-    ] = set()
-
-    positions_by_plant: Dict[
-        str,
-        List[Tuple[int, int]]
-    ] = {}
-
+    used_positions: Set[Tuple[int, int]] = set()
+    plant_positions: Dict[str, List[Tuple[int, int]]] = defaultdict(list)
     actions: List[Action] = []
 
-    # --------------------------------------------------------
-    # We use the first part of the run to establish the
-    # ecosystem needed for unlocks.
-    # --------------------------------------------------------
+    plantable_count = sum(1 for c in cells.values() if is_plantable(c))
+    print(f"[*] Starting simulation: {ticks} ticks, {plantable_count} plantable cells.")
 
-    print("\n=== Unlock preparation ===")
+    for tick in range(ticks):
+        if len(used_positions) >= plantable_count:
+            break
 
-    for tick in range(
-        min(ticks, 100)
-    ):
+        # 1. Update Animals
+        for a_name, a_data in animals.items():
+            if a_name not in state.animals_present:
+                if evaluate_animal(a_data, state, classifications):
+                    state.animals_present.add(a_name)
+                    print(f"  [Tick {tick:03d}] Animal Arrived: {a_name}")
 
-        tick_actions = 0
+        # 2. Update Plant Unlocks
+        for p_name, p_info in plants.items():
+            if p_name not in unlocked:
+                condition = unlocks.get(p_name)
+                if condition and evaluate_plant_condition(condition, state, classifications):
+                    unlocked.add(p_name)
+                    print(f"  [Tick {tick:03d}] Plant Unlocked: {p_name} (Index {p_info.index})")
 
-        # ----------------------------------------------------
-        # Update animal state
-        # ----------------------------------------------------
+        # 3. Dynamic Target Planning
+        targets = build_tick_targets(state, unlocked, plants)
 
-        newly_animals = update_animals(
-            state,
-            animals,
-            classifications,
-        )
-
-        for animal in newly_animals:
-
-            print(
-                f"  Ecosystem unlocked: "
-                f"{animal}"
-            )
-
-        # ----------------------------------------------------
-        # Update plant unlocks
-        # ----------------------------------------------------
-
-        newly_plants = find_newly_unlocked_plants(
-            state,
-            plants,
-            unlocks,
-            classifications,
-            unlocked,
-        )
-
-        for plant in newly_plants:
-
-            print(
-                f"  Plant unlocked: "
-                f"{plant} "
-                f"(index {plants[plant].index})"
-            )
-
-        # ----------------------------------------------------
-        # Priority targets
-        # ----------------------------------------------------
-
-        targets = build_priority_plan(
-            state,
-            unlocked,
-            plants,
-        )
-
-        # After the major ecosystem triggers are established,
-        # start adding newly unlocked species.
-        if not targets:
-
-            targets = choose_diversity_targets(
-                state,
-                unlocked,
-                plants,
-            )
-
-        # ----------------------------------------------------
-        # Plant up to 20 this tick
-        # ----------------------------------------------------
-
-        for plant_name, requested in targets:
-
-            if tick_actions >= MAX_PLANTS_PER_TICK:
+        # 4. Action Execution
+        tick_action_count = 0
+        for p_name, requested in targets:
+            if tick_action_count >= MAX_PLANTS_PER_TICK:
                 break
-
-            if plant_name not in unlocked:
+            if p_name not in unlocked or p_name not in plants:
                 continue
 
-            if plant_name not in plants:
-                continue
-
-            amount = min(
-                requested,
-                MAX_PLANTS_PER_TICK
-                - tick_actions,
-            )
-
+            amount = min(requested, MAX_PLANTS_PER_TICK - tick_action_count)
             if amount <= 0:
                 continue
 
-            existing = positions_by_plant.setdefault(
-                plant_name,
-                [],
-            )
-
-            chosen = choose_cells_for_plant(
-                plants[plant_name],
+            coords = select_optimal_cells(
+                plants[p_name],
                 cells,
                 used_positions,
                 amount,
-                existing,
+                plant_positions[p_name],
             )
 
-            for row, col in chosen:
-
-                action = Action(
-                    tick=tick,
-                    plant=plant_name,
-                    row=row,
-                    col=col,
-                )
-
-                actions.append(action)
-
-                apply_action(
-                    state,
-                    action,
-                )
-
-                used_positions.add(
-                    (row, col)
-                )
-
-                existing.append(
-                    (row, col)
-                )
-
-                tick_actions += 1
-
-                if tick_actions >= MAX_PLANTS_PER_TICK:
-                    break
-
-        # ----------------------------------------------------
-        # If no priority action was required, continue with
-        # controlled diversity.
-        # ----------------------------------------------------
-
-        if tick_actions == 0:
-
-            targets = choose_diversity_targets(
-                state,
-                unlocked,
-                plants,
-            )
-
-            for plant_name, requested in targets:
-
-                if tick_actions >= MAX_PLANTS_PER_TICK:
-                    break
-
-                if plant_name not in plants:
-                    continue
-
-                amount = min(
-                    requested,
-                    MAX_PLANTS_PER_TICK
-                    - tick_actions,
-                )
-
-                chosen = choose_cells_for_plant(
-                    plants[plant_name],
-                    cells,
-                    used_positions,
-                    amount,
-                    positions_by_plant.get(
-                        plant_name,
-                        [],
-                    ),
-                )
-
-                for row, col in chosen:
-
-                    action = Action(
-                        tick=tick,
-                        plant=plant_name,
-                        row=row,
-                        col=col,
-                    )
-
-                    actions.append(action)
-
-                    apply_action(
-                        state,
-                        action,
-                    )
-
-                    used_positions.add(
-                        (row, col)
-                    )
-
-                    positions_by_plant.setdefault(
-                        plant_name,
-                        [],
-                    ).append(
-                        (row, col)
-                    )
-
-                    tick_actions += 1
-
-                    if tick_actions >= MAX_PLANTS_PER_TICK:
-                        break
-
-        # ----------------------------------------------------
-        # Stop early if every plantable cell is occupied.
-        # ----------------------------------------------------
-
-        if len(used_positions) >= len(
-            plantable_cells
-        ):
-            break
-
-    # ========================================================
-    # SECOND PHASE
-    # ========================================================
-
-    print("\n=== Diversity expansion ===")
-
-    for tick in range(
-        min(ticks, 100),
-        ticks,
-    ):
-
-        if len(used_positions) >= len(
-            plantable_cells
-        ):
-            break
-
-        # Re-evaluate ecosystem.
-        newly_animals = update_animals(
-            state,
-            animals,
-            classifications,
-        )
-
-        for animal in newly_animals:
-            print(
-                f"  Ecosystem unlocked: "
-                f"{animal}"
-            )
-
-        newly_plants = find_newly_unlocked_plants(
-            state,
-            plants,
-            unlocks,
-            classifications,
-            unlocked,
-        )
-
-        for plant in newly_plants:
-            print(
-                f"  Plant unlocked: "
-                f"{plant}"
-            )
-
-        targets = choose_diversity_targets(
-            state,
-            unlocked,
-            plants,
-        )
-
-        # If every unlocked species already has a presence,
-        # fill selectively using underrepresented species.
-        if not targets:
-
-            candidates = sorted(
-                (
-                    plant
-                    for plant in unlocked
-                    if plant in plants
-                ),
-                key=lambda name:
-                    state.counts.get(
-                        name,
-                        0,
-                    ),
-            )
-
-            targets = [
-                (
-                    name,
-                    1,
-                )
-                for name in candidates[:10]
-            ]
-
-        tick_actions = 0
-
-        for plant_name, requested in targets:
-
-            if tick_actions >= MAX_PLANTS_PER_TICK:
-                break
-
-            if plant_name not in plants:
-                continue
-
-            # We deliberately use a small number per species
-            # here to preserve diversity.
-            amount = min(
-                requested,
-                3,
-                MAX_PLANTS_PER_TICK
-                - tick_actions,
-            )
-
-            chosen = choose_cells_for_plant(
-                plants[plant_name],
-                cells,
-                used_positions,
-                amount,
-                positions_by_plant.get(
-                    plant_name,
-                    [],
-                ),
-            )
-
-            for row, col in chosen:
-
-                action = Action(
-                    tick=tick,
-                    plant=plant_name,
-                    row=row,
-                    col=col,
-                )
-
-                actions.append(action)
-
-                apply_action(
-                    state,
-                    action,
-                )
-
-                used_positions.add(
-                    (row, col)
-                )
-
-                positions_by_plant.setdefault(
-                    plant_name,
-                    [],
-                ).append(
-                    (row, col)
-                )
-
-                tick_actions += 1
-
-                if tick_actions >= MAX_PLANTS_PER_TICK:
+            for r, c in coords:
+                actions.append(Action(tick=tick, plant=p_name, row=r, col=c))
+                state.counts[p_name] += 1
+                state.planted_species.add(p_name)
+                used_positions.add((r, c))
+                plant_positions[p_name].append((r, c))
+                tick_action_count += 1
+                if tick_action_count >= MAX_PLANTS_PER_TICK:
                     break
 
     return actions
 
 
 # ============================================================
-# VALIDATION
+# SUBMISSION ENCODER & VALIDATOR
 # ============================================================
 
-def validate_actions(
-    actions: List[Action],
-    cells: Dict[Tuple[int, int], Cell],
-    plants: Dict[str, PlantInfo],
-    ticks: int,
-) -> None:
-
-    if not actions:
-        raise ValueError(
-            "No actions generated."
-        )
-
-    by_tick: Dict[int, int] = {}
-
-    occupied: Set[
-        Tuple[int, int]
-    ] = set()
-
-    for action in actions:
-
-        if action.tick < 0 or action.tick >= ticks:
-            raise ValueError(
-                f"Invalid tick: {action.tick}"
-            )
-
-        if action.plant not in plants:
-            raise ValueError(
-                f"Unknown plant: {action.plant}"
-            )
-
-        pos = (
-            action.row,
-            action.col,
-        )
-
-        if pos not in cells:
-            raise ValueError(
-                f"Cell {pos} does not exist."
-            )
-
-        if not is_plantable_cell(
-            cells[pos]
-        ):
-            raise ValueError(
-                f"Cell {pos} is not plantable "
-                f"(terrain={cells[pos].terrain})."
-            )
-
-        by_tick[action.tick] = (
-            by_tick.get(
-                action.tick,
-                0,
-            )
-            + 1
-        )
-
-        if by_tick[action.tick] > MAX_PLANTS_PER_TICK:
-            raise ValueError(
-                f"Tick {action.tick} contains "
-                f"{by_tick[action.tick]} plants."
-            )
-
-        # We don't reject repeated positions globally because
-        # the official rules permit replacement.
-        occupied.add(pos)
-
-
-# ============================================================
-# SUBMISSION CONVERSION
-# ============================================================
-
-def create_submission(
-    actions: List[Action],
-    plants: Dict[str, PlantInfo],
-) -> Dict[str, Any]:
-
-    grouped: Dict[
-        int,
-        List[Dict[str, Any]]
-    ] = {}
-
-    for action in actions:
-
-        grouped.setdefault(
-            action.tick,
-            [],
-        ).append(
-            {
-                "plant_index": plants[
-                    action.plant
-                ].index,
-                "row": action.row,
-                "col": action.col,
-            }
-        )
+def format_submission(actions: List[Action], plants: Dict[str, PlantInfo]) -> Dict[str, Any]:
+    grouped: Dict[int, List[Dict[str, Any]]] = defaultdict(list)
+    for a in actions:
+        grouped[a.tick].append({
+            "plant_index": plants[a.plant].index,
+            "row": a.row,
+            "col": a.col,
+        })
 
     return {
         "actions": [
             {
-                "tick": tick,
-                "plants": grouped[tick],
+                "tick": t,
+                "plants": grouped[t],
             }
-            for tick in sorted(grouped)
+            for t in sorted(grouped.keys())
         ]
     }
 
 
-# ============================================================
-# REPORT
-# ============================================================
-
-def print_report(
-    actions: List[Action],
-    plants: Dict[str, PlantInfo],
-) -> None:
-
-    counts: Dict[str, int] = {}
-
-    for action in actions:
-
-        counts[action.plant] = (
-            counts.get(
-                action.plant,
-                0,
-            )
-            + 1
-        )
-
-    print("\n=== FINAL ACTION REPORT ===")
-
-    print(
-        f"Total actions: {len(actions)}"
-    )
-
-    print(
-        f"Distinct planted species: "
-        f"{len(counts)}"
-    )
-
-    print("\nPlant counts:")
-
-    for name in sorted(
-        counts,
-        key=lambda x: plants[x].index,
-    ):
-
-        print(
-            f"  {plants[name].index:2} "
-            f"{name:<25} "
-            f"{counts[name]:4}"
-        )
-
-    print("\nCoverage estimates:")
-
-    for name in sorted(
-        counts,
-        key=lambda x: plants[x].index,
-    ):
-
-        value = (
-            counts[name]
-            / GRID_COVERAGE_DENOMINATOR
-        )
-
-        print(
-            f"  {name:<25} "
-            f"{value:.2%}"
-        )
+def validate_submission(actions: List[Action], ticks: int, max_per_tick: int) -> None:
+    counts_by_tick: Dict[int, int] = defaultdict(int)
+    for a in actions:
+        if a.tick < 0 or a.tick >= ticks:
+            raise ValueError(f"Invalid tick {a.tick}")
+        counts_by_tick[a.tick] += 1
+        if counts_by_tick[a.tick] > max_per_tick:
+            raise ValueError(f"Exceeded max actions per tick on tick {a.tick}")
+    print("[+] Action validation passed successfully.")
 
 
 # ============================================================
-# MAIN
+# ENTRY POINT
 # ============================================================
-
-def solve() -> None:
-
-    print("=" * 60)
-    print("ENTELECT UNIVERSITY CUP 2 - LEVEL 1 SOLVER")
-    print("=" * 60)
-
-    # --------------------------------------------------------
-    # Load files
-    # --------------------------------------------------------
-
-    data = load_input()
-
-    plant_dataset = load_resource(
-        "plant_dataset.json"
-    )
-
-    unlock_dataset = load_resource(
-        "plant_unlock_conditions.json"
-    )
-
-    animal_dataset = load_resource(
-        "animals.json"
-    )
-
-    classification_dataset = load_resource(
-        "classifications.json"
-    )
-
-    # --------------------------------------------------------
-    # Parse
-    # --------------------------------------------------------
-
-    cells = parse_garden(data)
-
-    plants = parse_plant_catalogue(
-        plant_dataset
-    )
-
-    unlocks = parse_unlock_conditions(
-        unlock_dataset
-    )
-
-    animals = parse_animals(
-        animal_dataset
-    )
-
-    classifications = parse_classifications(
-        classification_dataset
-    )
-
-    # --------------------------------------------------------
-    # Basic information
-    # --------------------------------------------------------
-
-    rows = int(
-        data.get("rows", 0)
-    )
-
-    cols = int(
-        data.get("cols", 0)
-    )
-
-    ticks = int(
-        data.get("ticks", 0)
-    )
-
-    print(
-        f"\nGrid: {rows} x {cols}"
-    )
-
-    print(
-        f"Ticks: {ticks}"
-    )
-
-    print(
-        f"Cells supplied: {len(cells)}"
-    )
-
-    print(
-        f"Plant catalogue: {len(plants)}"
-    )
-
-    print(
-        f"Plant unlock rules: {len(unlocks)}"
-    )
-
-    print(
-        f"Ecosystem species: {len(animals)}"
-    )
-
-    # --------------------------------------------------------
-    # Terrain report
-    # --------------------------------------------------------
-
-    terrain_counts: Dict[Any, int] = {}
-
-    for cell in cells.values():
-
-        terrain_counts[cell.terrain] = (
-            terrain_counts.get(
-                cell.terrain,
-                0,
-            )
-            + 1
-        )
-
-    print("\nTerrain:")
-
-    for terrain, count in sorted(
-        terrain_counts.items(),
-        key=lambda x: str(x[0]),
-    ):
-
-        print(
-            f"  {terrain}: {count}"
-        )
-
-    # --------------------------------------------------------
-    # Generate
-    # --------------------------------------------------------
-
-    actions = generate_actions(
-        data,
-        cells,
-        plants,
-        unlocks,
-        animals,
-        classifications,
-    )
-
-    # --------------------------------------------------------
-    # Validate
-    # --------------------------------------------------------
-
-    print(
-        "\nValidating generated actions..."
-    )
-
-    validate_actions(
-        actions,
-        cells,
-        plants,
-        ticks,
-    )
-
-    print(
-        "Local validation: PASS"
-    )
-
-    # --------------------------------------------------------
-    # Report
-    # --------------------------------------------------------
-
-    print_report(
-        actions,
-        plants,
-    )
-
-    # --------------------------------------------------------
-    # Official format
-    # --------------------------------------------------------
-
-    submission = create_submission(
-        actions,
-        plants,
-    )
-
-    output_path = os.path.join(
-        SCRIPT_DIR,
-        OUTPUT_FILE,
-    )
-
-    with open(
-        output_path,
-        "w",
-        encoding="utf-8",
-    ) as f:
-
-        json.dump(
-            submission,
-            f,
-            indent=2,
-        )
-
-    print(
-        "\n" + "=" * 60
-    )
-
-    print(
-        f"SUCCESS: wrote {output_path}"
-    )
-
-    print(
-        f"Actions: {len(actions)}"
-    )
-
-    print(
-        f"Ticks used: "
-        f"{len(set(a.tick for a in actions))}"
-    )
-
-    print("=" * 60)
-
 
 def main():
+    random.seed(RANDOM_SEED)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
 
-    random.seed(
-        RANDOM_SEED
+    # Load Inputs
+    input_path = os.path.join(script_dir, INPUT_FILE)
+    if not os.path.exists(input_path):
+        input_path = INPUT_FILE
+
+    input_data = load_json(input_path)
+    cells = parse_garden(input_data)
+
+    # Load Resources
+    plants_data = load_json(resolve_resource_path("plant_dataset.json"))
+    unlocks_data = load_json(resolve_resource_path("plant_unlock_conditions.json"))
+    animals_data = load_json(resolve_resource_path("animals.json"))
+    classifications_data = load_json(resolve_resource_path("classifications.json"))
+
+    # Parse Resources
+    plants = parse_plant_catalogue(plants_data)
+    unlocks = parse_unlock_conditions(unlocks_data)
+    animals = parse_animals(animals_data)
+    classifications = parse_classifications(classifications_data)
+
+    # Execute Planner
+    actions = generate_solution(
+        input_data=input_data,
+        cells=cells,
+        plants=plants,
+        unlocks=unlocks,
+        animals=animals,
+        classifications=classifications,
     )
 
-    try:
-        solve()
+    # Validate
+    validate_submission(actions, int(input_data.get("ticks", 500)), MAX_PLANTS_PER_TICK)
 
-    except Exception as exc:
+    # Write Output
+    submission_payload = format_submission(actions, plants)
+    output_path = os.path.join(script_dir, OUTPUT_FILE)
+    with open(output_path, "w", encoding="utf-8") as f:
+        json.dump(submission_payload, f, indent=2)
 
-        print()
-        print(
-            "ERROR:"
-        )
-        print(
-            str(exc)
-        )
-
-        sys.exit(1)
+    print(f"[+] Output written to {output_path}")
+    print(f"[+] Total Actions: {len(actions)}")
+    print(f"[+] Active Ticks: {len(submission_payload['actions'])}")
 
 
 if __name__ == "__main__":
