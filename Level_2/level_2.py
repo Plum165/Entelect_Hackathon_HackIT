@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Level 2: 10-Species High Entropy Optimizer
-World: 70x100 (500 ticks) | 10 Species Pool -> H = 0.6702 (+43% boost)
+Level 2: Multi-Tick Horizon & Formula Diagnostic Solver
+World: 70x100 (7000 cells, 500 ticks) | 10 Species Pool -> H = 0.6702
 """
-import json, os, random
+import json, os, random, math
 from collections import defaultdict
 
 INPUT_FILE = "2.json"
@@ -16,29 +16,28 @@ def solve():
     with open(input_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
+    rows, cols, T = int(data.get("rows", 70)), int(data.get("cols", 100)), int(data.get("ticks", 500))
+    C_max = rows * cols
     plantable = [(int(c["row"]), int(c["col"])) for c in data.get("cells", []) if int(c.get("terrain", 0)) == 0]
     random.seed(42)
 
     actions = []
 
     # 1. Early Unlock Triggers (Ticks 0..6)
-    # Triggers Virexids [11], Canorals/Barkskips [4], Nectaris [7], Loamcrawlers [3], Purple Canopy [10]
     p1 = [
-        (0, [1]*10 + [6]*10),   # 10 Grass, 10 Lavender -> Virexids
-        (1, [12]*12 + [2]*8),   # 12 Oak, 8 Rose -> Canorals & Barkskips
-        (2, [6]*10 + [5]*10),   # 10 Lavender, 10 Sunflower -> Nectaris
-        (3, [2]*10 + [1]*10),   # 10 Rose, 10 Grass -> Loamcrawlers
-        (4, [1]*15 + [2]*5),    # Grass coverage expansion
-        (5, [3]*10 + [4]*10),   # Propagate Blue Moss & Crimson Vine -> Purple Canopy [10]
+        (0, [1]*10 + [6]*10),
+        (1, [12]*12 + [2]*8),
+        (2, [6]*10 + [5]*10),
+        (3, [2]*10 + [1]*10),
+        (4, [1]*15 + [2]*5),
+        (5, [3]*10 + [4]*10),
     ]
     for t, batch in p1:
         for idx, p_idx in enumerate(batch):
             r, c = plantable[idx % len(plantable)]
             actions.append({"tick": t, "plant_index": p_idx, "row": r, "col": c})
 
-    # 2. Grand 10-Species Harvest (Ticks 405..435)
-    # 1: Grass, 2: Rose, 3: Blue Moss, 4: Crimson Vine, 5: Sunflower,
-    # 6: Lavender, 7: Orange Blossom, 10: Purple Canopy, 11: Stone Reed, 12: Oak
+    # 2. Grand 10-Species Harvest Stretched across Ticks 405..485
     active_10 = [1, 2, 3, 4, 5, 6, 7, 10, 11, 12]
     total_to_plant = len(plantable)
     species_queue = [active_10[i % len(active_10)] for i in range(total_to_plant)]
@@ -47,15 +46,27 @@ def solve():
     harvest_plantable.sort(key=lambda pos: (pos[0] % 3, pos[1] % 3, pos[0], pos[1]))
 
     cur_tick = 405
-    while species_queue and harvest_plantable and cur_tick < 500:
-        batch_size = min(MAX_PLANTS_PER_TICK, len(species_queue), len(harvest_plantable))
+    plants_per_tick = max(1, math.ceil(total_to_plant / 75))
+    plants_per_tick = min(MAX_PLANTS_PER_TICK, plants_per_tick)
+
+    harvest_actions = []
+    while species_queue and harvest_plantable and cur_tick < T - 2:
+        batch_size = min(plants_per_tick, len(species_queue), len(harvest_plantable))
         for _ in range(batch_size):
             p_idx = species_queue.pop(0)
             r, c = harvest_plantable.pop(0)
-            actions.append({"tick": cur_tick, "plant_index": p_idx, "row": r, "col": c})
+            act = {"tick": cur_tick, "plant_index": p_idx, "row": r, "col": c}
+            actions.append(act)
+            harvest_actions.append(act)
         cur_tick += 1
 
     grouped = defaultdict(list)
+    lifespans = []
+    counts = defaultdict(int)
+    for a in harvest_actions:
+        lifespans.append(T - a["tick"])
+        counts[a["plant_index"]] += 1
+
     for a in actions:
         grouped[a["tick"]].append({"plant_index": a["plant_index"], "row": a["row"], "col": a["col"]})
 
@@ -63,7 +74,34 @@ def solve():
     with open(os.path.join(script_dir, OUTPUT_FILE), "w", encoding="utf-8") as f:
         json.dump(submission, f, indent=2)
 
-    print(f"[+] Level 2 (10 Species, H=0.6702): {len(actions)} actions across {len(grouped)} ticks.")
+    # -------------------------------------------------------------------------
+    # MATHEMATICAL FORMULA VARIABLE PRINTOUT
+    # -------------------------------------------------------------------------
+    C = len(harvest_actions)
+    K = len(counts)
+    H = -sum((cnt / C) * (math.log(cnt / C) / math.log(31)) for cnt in counts.values())
+    coverage_ratio = C / C_max
+    mean_lifespan = sum(lifespans) / len(lifespans)
+
+    print("=" * 70)
+    print(f" LEVEL 2 SCORING FORMULA VARIABLES")
+    print("=" * 70)
+    print(f" Grid Size (C_max)     : {C_max} cells ({rows}x{cols})")
+    print(f" Total Ticks (T)       : {T}")
+    print(f" Live Plants at End(C) : {C} ({C/C_max:.4%} of C_max)")
+    print(f" Species Count (K)     : {K} species")
+    print(f" Exact Entropy (H)     : {H:.6f} (Max for K=10: {math.log(10)/math.log(31):.6f})")
+    print(f" Harvest Ticks Used    : {min(a['tick'] for a in harvest_actions)} to {max(a['tick'] for a in harvest_actions)} ({len(set(a['tick'] for a in harvest_actions))} ticks)")
+    print(f" Lifespans (l_ij)      : min={min(lifespans)}, max={max(lifespans)}, mean={mean_lifespan:.2f} ticks")
+    print("-" * 70)
+    print(f" PARAMETER SOLVER MATRIX:")
+    for alpha in [1.0, 1.5, 2.0]:
+        main_val = H * (coverage_ratio ** alpha)
+        for k in [1.0, 1.5, 2.0]:
+            long_val = (1.0 / C_max) * sum((l / T) ** k for l in lifespans)
+            unscaled_score = 0.8 * main_val + 0.2 * long_val
+            print(f"   alpha={alpha:.1f}, k={k:.1f}  ->  Main={main_val:.6f}, Long={long_val:.6f}  =>  RawSum={unscaled_score:.6f}")
+    print("=" * 70)
 
 if __name__ == "__main__":
     solve()
