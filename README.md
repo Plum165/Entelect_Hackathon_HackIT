@@ -1,4 +1,4 @@
-# Entelect Hack<IT> Solo - Root Cause Analysis
+# Entelect Hack<IT> - Root Cause Analysis
 
 This repository contains preparation work and Python submissions for the Entelect Hack<IT> Solo competition. The challenge is **Root Cause Analysis**, set on the planet Photospheria. The objective is to build the most useful biological sample by cultivating a diverse and long-lived collection of plant species on a supplied grid.
 
