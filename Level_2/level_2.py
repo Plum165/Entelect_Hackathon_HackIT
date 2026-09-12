@@ -14,64 +14,39 @@ def solve():
 
     plantable = [(int(c["row"]), int(c["col"])) for c in data.get("cells", []) if int(c.get("terrain", 0)) == 0]
     random.seed(42)
-    random.shuffle(plantable)
 
+    # Base 5 species + Stone Reed (11) unlocked via Virexids (Grass >= 10, Lavender >= 10)
+    # Ticks 0..2 bootstrap Virexids
     actions = []
     occupied = set()
 
-    def plant_batch(tick, plant_idx_list):
-        nonlocal actions, occupied
-        for p_idx in plant_idx_list:
-            if len(occupied) >= len(plantable):
-                occupied.clear()
-            avail = [pos for pos in plantable if pos not in occupied]
-            if not avail:
-                occupied.clear()
-                avail = plantable
-            pos = random.choice(avail)
-            occupied.add(pos)
-            actions.append({"tick": tick, "plant_index": p_idx, "row": pos[0], "col": pos[1]})
+    # Step 1: Bootstrap Virexids count >= 10
+    bootstrap_pos = plantable[:30]
+    for i in range(15):
+        r, c = bootstrap_pos[i]
+        actions.append({"tick": 0, "plant_index": 1, "row": r, "col": c})  # 15 Grass
+    for i in range(15, 30):
+        r, c = bootstrap_pos[i]
+        actions.append({"tick": 1, "plant_index": 6, "row": r, "col": c})  # 15 Lavender
 
-    # Phase 1: Bootstrap Animals (Ticks 0..15)
-    # Grass(1), Rose(2), Sunflower(5), Lavender(6), Oak(12)
-    p1 = [
-        (0, [1]*12 + [6]*8),
-        (1, [1]*12 + [6]*8),
-        (2, [1]*12 + [6]*8),
-        (3, [5]*12 + [2]*8),
-        (4, [5]*12 + [2]*8),
-        (5, [5]*12 + [2]*8),
-        (6, [12]*10 + [2]*10),
-        (7, [12]*10 + [2]*10),
-        (8, [1]*10 + [6]*10),
-        (9, [1]*10 + [5]*10),
-    ]
-    for t, batch in p1:
-        plant_batch(t, batch)
+    # Step 2: The Grand Harvest (Ticks 420..445)
+    # Reclaims all 411 plantable cells using exact 6-way parity across [1, 2, 5, 6, 11, 12]
+    active_species = [1, 2, 5, 6, 11, 12]
+    total_to_plant = len(plantable)
+    species_queue = [active_species[i % len(active_species)] for i in range(total_to_plant)]
+    random.shuffle(species_queue)
+    
+    harvest_plantable = list(plantable)
+    random.shuffle(harvest_plantable)
 
-    # Phase 2: Tier 2 Unlocks (Ticks 100..115)
-    # Blue Moss(3), Crimson Vine(4), Orange Blossom(7), Stone Reed(11)
-    tier2 = [3, 4, 7, 11]
-    for t in range(100, 115):
-        plant_batch(t, [tier2[i % len(tier2)] for i in range(MAX_PLANTS_PER_TICK)])
-
-    # Phase 3: Tier 3 Unlocks (Ticks 200..215)
-    # Purple Canopy(10), Silver Fern(8), Moonpetal(15), Skyvine(20)
-    tier3 = [10, 8, 15, 20]
-    for t in range(200, 215):
-        plant_batch(t, [tier3[i % len(tier3)] for i in range(MAX_PLANTS_PER_TICK)])
-
-    # Phase 4: THE GRAND HARVEST (Ticks 410..495)
-    occupied.clear()
-    grand_pool = [1, 2, 3, 4, 5, 6, 7, 8, 10, 11, 12, 15, 20, 27]
-    idx_counter = 0
-
-    for t in range(410, 496):
-        batch = []
-        for _ in range(MAX_PLANTS_PER_TICK):
-            batch.append(grand_pool[idx_counter % len(grand_pool)])
-            idx_counter += 1
-        plant_batch(t, batch)
+    cur_tick = 420
+    while species_queue and harvest_plantable and cur_tick < 500:
+        batch_size = min(MAX_PLANTS_PER_TICK, len(species_queue), len(harvest_plantable))
+        for _ in range(batch_size):
+            p_idx = species_queue.pop()
+            r, c = harvest_plantable.pop()
+            actions.append({"tick": cur_tick, "plant_index": p_idx, "row": r, "col": c})
+        cur_tick += 1
 
     grouped = defaultdict(list)
     for a in actions:
@@ -81,7 +56,7 @@ def solve():
     with open(os.path.join(script_dir, OUTPUT_FILE), "w", encoding="utf-8") as f:
         json.dump(submission, f, indent=2)
 
-    print(f"[+] Level 2 Done: {len(actions)} actions written across {len(grouped)} ticks.")
+    print(f"[+] Level 2 Complete: {len(actions)} actions written across {len(grouped)} ticks.")
 
 if __name__ == "__main__":
     solve()
