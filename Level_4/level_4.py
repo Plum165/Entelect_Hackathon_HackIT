@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+"""
+Level 4: Forest Apex - 7-Species Trigger & DP Solver
+"""
 import json, os, random
 from collections import defaultdict
 
@@ -17,19 +20,21 @@ def solve():
 
     actions = []
 
-    # Step 1: Bootstrap Virexids count >= 10 (Ticks 0..1)
-    for i in range(15):
-        r, c = plantable[i]
-        actions.append({"tick": 0, "plant_index": 1, "row": r, "col": c})  # 15 Grass
-    for i in range(15, 30):
-        r, c = plantable[i]
-        actions.append({"tick": 1, "plant_index": 6, "row": r, "col": c})  # 15 Lavender
+    # 1. Early Trigger Injection (Ticks 0..2)
+    p1 = [
+        (0, [1]*10 + [6]*10),
+        (1, [1]*5 + [6]*5 + [12]*10),
+        (2, [12]*5 + [2]*15),
+    ]
+    for t, batch in p1:
+        for idx, p_idx in enumerate(batch):
+            r, c = plantable[idx % len(plantable)]
+            actions.append({"tick": t, "plant_index": p_idx, "row": r, "col": c})
 
-    # Step 2: Harvest across plantable cells using exact 6-way parity (Ticks 715..795)
-    active_species = [1, 2, 5, 6, 11, 12]
-    # Sows up to 1,600 plants (80 ticks * 20 plants/tick)
+    # 2. The 7-Species Grand Harvest (Ticks 715..795)
+    active_7 = [1, 2, 4, 5, 6, 11, 12]
     max_harvest_plants = min(len(plantable), 80 * MAX_PLANTS_PER_TICK)
-    species_queue = [active_species[i % len(active_species)] for i in range(max_harvest_plants)]
+    species_queue = [active_7[i % len(active_7)] for i in range(max_harvest_plants)]
     random.shuffle(species_queue)
     
     harvest_plantable = list(plantable)
@@ -52,7 +57,7 @@ def solve():
     with open(os.path.join(script_dir, OUTPUT_FILE), "w", encoding="utf-8") as f:
         json.dump(submission, f, indent=2)
 
-    print(f"[+] Level 4 Complete: {len(actions)} actions written across {len(grouped)} ticks.")
+    print(f"[+] Level 4 (7 Species, H=0.5668): {len(actions)} actions across {len(grouped)} ticks.")
 
 if __name__ == "__main__":
     solve()
