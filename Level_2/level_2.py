@@ -49,9 +49,12 @@ def solve():
         [6] * 10 + [12] * 10,
         [12] * 5 + [2] * 15,
     ]
+    early_offset = 0
     for tick, batch in enumerate(early_batches):
-        for position, plant_index in zip(plantable[:len(batch)], batch):
+        trigger_cells = plantable[early_offset:early_offset + len(batch)]
+        for position, plant_index in zip(trigger_cells, batch):
             grouped[tick].append({"plant_index": plant_index, "row": position[0], "col": position[1]})
+        early_offset += len(batch)
 
     # Use the requested seven-species pool in the final-tick lifespan window.
     species_queue = [ACTIVE_7[i % len(ACTIVE_7)] for i in range(len(plantable))]
